@@ -11,7 +11,6 @@ namespace prpack {
 			int num_es;
 			int* heads;
 			int* tails;
-			prpack_graph() {}
 	};
 
 };

@@ -3,16 +3,29 @@
 using namespace prpack;
 using namespace std;
 
-prpack_solver::prpack_solver(prpack_csr* g) {
-	//this->g = new prpack_preprocessed_graph(g);
+void prpack_solver::initialize() {
+	gsg = NULL;
+	sccg = NULL;
 }
 
-prpack_solver::prpack_solver(prpack_edgelist* g) {
-	//this->g = new prpack_preprocessed_graph(g);
+prpack_solver::prpack_solver(prpack_csr* g) {
+	initialize();
+	al = new prpack_adjacency_list(g);
+}
+
+prpack_solver::prpack_solver(prpack_edge_list* g) {
+	initialize();
+	al = new prpack_adjacency_list(g);
+}
+
+prpack_solver::prpack_solver(prpack_adjacency_list* g) {
+	initialize();
+	al = g;
 }
 
 prpack_solver::prpack_solver(const string& filename) {
-	this->g = new prpack_preprocessed_graph(filename);
+	initialize();
+	al = new prpack_adjacency_list(filename);
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol) {
@@ -20,17 +33,58 @@ prpack_result* prpack_solver::solve(double alpha, double tol) {
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v) {
-	// set up convenience variables
-	int num_vs = g->num_vs;
-	int num_es = g->num_es;
-	int* heads = g->heads;
-	int* tails = g->tails;
-	double* inv_num_outlinks = g->inv_num_outlinks;
-	double* ii = g->ii;
-	// set up return variable
+	prpack_result* ret;
+	if (u != v) {
+		if (gsg == NULL)
+			gsg = new prpack_preprocessed_gs_graph(al);
+		ret = solve_via_gs(
+				alpha,
+				tol,
+				gsg->num_vs,
+				gsg->num_es,
+				gsg->heads,
+				gsg->tails,
+				gsg->ii,
+				gsg->inv_num_outlinks,
+				u,
+				v);
+	} else {
+		if (sccg == NULL)
+			sccg = new prpack_preprocessed_sccg_graph(al);
+		ret = solve_via_scc_gs(
+				alpha,
+				tol,
+				sccg->num_vs,
+				sccg->num_es,
+				sccg->heads,
+				sccg->tails,
+				sccg->ii,
+				sccg->inv_num_outlinks,
+				u,
+				sccg->num_comps,
+				sccg->divisions,
+				sccg->decoding);
+	}
+	ret->num_vs = al->num_vs;
+	ret->num_es = al->num_es;
+	return ret;
+}
+
+// various solving methods ////////////////////////////////////////////////////////////////////////
+
+// vanilla Gauss-Seidel
+prpack_result* prpack_solver::solve_via_gs(
+		double alpha,
+		double tol,
+		int num_vs,
+		int num_es,
+		int* heads,
+		int* tails,
+		double* ii,
+		double* inv_num_outlinks,
+		double* u,
+		double* v) {
 	prpack_result* ret = new prpack_result();
-	ret->num_vs = num_vs;
-	ret->num_es = num_es;
 	// initialize u and v values
 	double u_const = 1.0/num_vs;
 	double v_const = (1.0 - alpha)/num_vs;
@@ -39,7 +93,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	u = (u) ? u : &u_const;
 	v = (v) ? v : &v_const;
 	if (v_exists)
-		for (int i = 0; i < num_vs; i++)
+		for (int i = 0; i < num_vs; ++i)
 			v[i] *= (1.0 - alpha);
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
@@ -53,15 +107,15 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	delta *= alpha;
 	// run Gauss-Seidel
 	ret->num_iter = 0;
-	double err, old_val, new_val, t, y, c = 0;
+	double err, old_val, new_val, y, t, c = 0;
 	do {
 		// iterate through vertices
 		err = 0;
-		for (int i = 0; i < num_vs; i++) {
+		for (int i = 0; i < num_vs; ++i) {
 			old_val = x[i]/inv_num_outlinks[i];
 			new_val = 0;
 			int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
-			for (int j = start_j; j < end_j; j++)
+			for (int j = start_j; j < end_j; ++j)
 				// TODO: might want to use compensation summation for large: end_j - start_j
 				new_val += x[heads[j]];
 			new_val = alpha*new_val + v[v_exists*i];
@@ -85,12 +139,76 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 		++ret->num_iter;
 	} while (err >= tol);
 	// undo inv_num_outlinks transformation
-	for (int i = 0; i < num_vs; i++)
+	for (int i = 0; i < num_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
 	// clean up
 	if (v_exists)
-		for (int i = 0; i < num_vs; i++)
+		for (int i = 0; i < num_vs; ++i)
 			v[i] /= (1.0 - alpha);
+	// return results
+	ret->x = x;
+	return ret;
+}
+
+// Gauss-Seidel using strongly connected components
+prpack_result* prpack_solver::solve_via_scc_gs(
+		double alpha,
+		double tol,
+		int num_vs,
+		int num_es,
+		int* heads,
+		int* tails,
+		double* ii,
+		double* inv_num_outlinks,
+		double* uv,
+		int num_comps,
+		int* divisions,
+		int* decoding) {
+	prpack_result* ret = new prpack_result();
+	// initialize uv values
+	double uv_const = 1.0/num_vs;
+	int uv_exists = (uv) ? 1 : 0;
+	uv = (uv) ? uv : &uv_const;
+	// initialize the eigenvector (and use personalization vector)
+	double* x = new double[num_vs];
+	for (int i = 0; i < num_vs; ++i)
+		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+	// run Gauss-Seidel for (I - alpha*P)*x = uv
+	ret->num_iter = 0;
+	for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
+		int start_comp = divisions[comp_i], end_comp = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
+		double err, new_val, y, t, c = 0;
+		do {
+			// iterate through vertices
+			err = 0;
+			for (int i = start_comp; i < end_comp; ++i) {
+				new_val = 0;
+				int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+				for (int j = start_j; j < end_j; ++j)
+					// TODO: might want to use compensation summation for large: end_j - start_j
+					new_val += x[heads[j]];
+				new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
+				// use compensation summation for: err += fabs(new_val - x[i]/inv_num_outlinks[i])
+				y = fabs(new_val - x[i]/inv_num_outlinks[i]) - c;
+				t = err + y;
+				c = (t - err) - y;
+				err = t;
+				x[i] = new_val*inv_num_outlinks[i];
+			}
+			// update iteration index
+			++ret->num_iter;
+		} while (err > tol*(end_comp - start_comp)/num_vs);
+	}
+	// undo inv_num_outlinks transformation
+	for (int i = 0; i < num_vs; ++i)
+		x[i] /= inv_num_outlinks[i];
+	// normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
+	double norm = 0;
+	for (int i = 0; i < num_vs; ++i)
+		norm += x[i];
+	norm = 1/norm;
+	for (int i = 0; i < num_vs; ++i)
+		x[i] *= norm;
 	// return results
 	ret->x = x;
 	return ret;

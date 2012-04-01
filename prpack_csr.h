@@ -1,5 +1,6 @@
 #ifndef PRPACK_CSR
 #define PRPACK_CSR
+#include "prpack_graph.h"
 
 namespace prpack {
 
