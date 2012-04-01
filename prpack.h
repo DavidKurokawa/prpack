@@ -4,7 +4,7 @@
 #include "prpack_graph.h"
 #include "prpack_csr.h"
 #include "prpack_edge_list.h"
-#include "prpack_adjacency_list.h";
+#include "prpack_adjacency_list.h"
 #include "prpack_solver.h"
 #include "prpack_preprocessed_gs_graph.h"
 #include "prpack_preprocessed_scc_graph.h"

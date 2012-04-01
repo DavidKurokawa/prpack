@@ -50,7 +50,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				v);
 	} else {
 		if (sccg == NULL)
-			sccg = new prpack_preprocessed_sccg_graph(al);
+			sccg = new prpack_preprocessed_scc_graph(al);
 		ret = solve_via_scc_gs(
 				alpha,
 				tol,
@@ -210,7 +210,10 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	for (int i = 0; i < num_vs; ++i)
 		x[i] *= norm;
 	// return results
-	ret->x = x;
+	ret->x = new double[num_vs];
+	for (int i = 0; i < num_vs; ++i)
+		ret->x[decoding[i]] = x[i];
+	free(x);
 	return ret;
 }
 

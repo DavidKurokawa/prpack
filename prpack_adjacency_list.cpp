@@ -1,4 +1,5 @@
 #include "prpack_adjacency_list.h"
+#include <cassert>
 #include <fstream>
 using namespace prpack;
 using namespace std;
@@ -16,13 +17,14 @@ prpack_adjacency_list::prpack_adjacency_list(const string& filename) {
 	FILE* f = fopen(filename.c_str(), "r");
 	// read in header
 	float blah;
-	fscanf(f, "%d%f%d", &num_vs, &blah, &num_es);
+	assert(fscanf(f, "%d%f%d", &num_vs, &blah, &num_es) == 3);
 	// read in all the edges
 	int h, t;
-	list<int>* matrix = new list<int>[num_vs];
+	al = new list<int>[num_vs];
 	for (int i = 0; i < num_es; ++i) {
-		fscanf(f, "%d%d%f", &h, &t, &blah);
-		matrix[t].push_back(h);
+		assert(fscanf(f, "%d%d%f", &h, &t, &blah) == 3);
+		al[t].push_back(h);
 	}
+	fclose(f);
 }
 
