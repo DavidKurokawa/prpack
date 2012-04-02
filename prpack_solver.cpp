@@ -1,4 +1,5 @@
 #include "prpack_solver.h"
+#include "prpack_utils.h"
 #include <cmath>
 using namespace prpack;
 using namespace std;
@@ -33,11 +34,13 @@ prpack_result* prpack_solver::solve(double alpha, double tol) {
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v) {
+	double preprocess_time = 0;
+	double compute_time = 0;
 	prpack_result* ret;
 	if (u != v) {
 		if (gsg == NULL)
-			gsg = new prpack_preprocessed_gs_graph(al);
-		ret = solve_via_gs(
+			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
+		TIME(compute_time, ret = solve_via_gs(
 				alpha,
 				tol,
 				gsg->num_vs,
@@ -47,11 +50,11 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				gsg->ii,
 				gsg->inv_num_outlinks,
 				u,
-				v);
+				v));
 	} else {
 		if (sccg == NULL)
-			sccg = new prpack_preprocessed_scc_graph(al);
-		ret = solve_via_scc_gs(
+			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
+		TIME(compute_time, ret = solve_via_scc_gs(
 				alpha,
 				tol,
 				sccg->num_vs,
@@ -63,8 +66,10 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				u,
 				sccg->num_comps,
 				sccg->divisions,
-				sccg->decoding);
+				sccg->decoding));
 	}
+	ret->preprocess_time = preprocess_time;
+	ret->compute_time = compute_time;
 	ret->num_vs = al->num_vs;
 	ret->num_es = al->num_es;
 	return ret;

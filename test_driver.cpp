@@ -16,6 +16,8 @@ int main() {
 	cout << "---------------------------" << endl;
 	cout << "number of vertices = " << res->num_vs << endl;
 	cout << "number of edges = " << res->num_es << endl;
+	cout << "preprocess time = " << res->preprocess_time << "s" << endl;
+	cout << "compute time = " << res->compute_time << "s" << endl;
 	cout << "number of iterations = " << res->num_iter << endl;
 	cout << "---------------------------" << endl;
 	pair<double, int>* ranks = new pair<double, int>[res->num_vs];
