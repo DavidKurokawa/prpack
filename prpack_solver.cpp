@@ -115,7 +115,7 @@ prpack_result* prpack_solver::solve_via_gs(
 	delta *= alpha;
 	// run Gauss-Seidel
 	ret->num_iter = 0;
-	double err, old_val, new_val, y, t, c = 0;
+	double err, old_val, new_val, c = 0;
 	do {
 		// iterate through vertices
 		err = 0;
@@ -136,11 +136,7 @@ prpack_result* prpack_solver::solve_via_gs(
 				new_val += delta*u[u_exists*i];
 				new_val /= 1 - alpha*ii[i];
 			}
-			// use compensation summation for: err += fabs(new_val - old_val)
-			y = fabs(new_val - old_val) - c;
-			t = err + y;
-			c = (t - err) - y;
-			err = t;
+			COMPENSATED_SUM(err, fabs(new_val - old_val), c);
 			x[i] = new_val*inv_num_outlinks[i];
 		}
 		// update iteration index
@@ -204,7 +200,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		do {
 			if (parallelize) {
 				// iterate through vertices
-				#pragma omp parallel for if (parallelize) schedule(dynamic, 4)
+				#pragma omp parallel for schedule(dynamic, 4)
 				for (int i = start_comp; i < end_comp; ++i) {
 					double new_val = x_outside[i];
 					const int start_j = tails_inside[i];
@@ -217,7 +213,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 				}
 				// compute error
 				err = c = 0;
-				#pragma omp parallel for if (parallelize) firstprivate(c) reduction(+:err) schedule(dynamic, 4)
+				#pragma omp parallel for firstprivate(c) reduction(+:err) schedule(dynamic, 4)
 				for (int i = start_comp; i < end_comp; ++i) {
 					double curr = x_outside[i];
 					const int start_j = tails_inside[i];
@@ -225,11 +221,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
 						curr += x[heads_inside[j]];
-					// use compensation summation for: err += fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i])
-					double y = fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]) - c;
-					double t = err + y;
-					c = t - err - y;
-					err = t;
+					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 				}
 			} else {
 				// iterate through vertices
@@ -252,11 +244,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
 						curr += x[heads_inside[j]];
-					// use compensation summation for: err += fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i])
-					double y = fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]) - c;
-					double t = err + y;
-					c = t - err - y;
-					err = t;
+					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 				}
 			}
 			// update iteration index
