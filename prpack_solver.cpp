@@ -200,7 +200,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		do {
 			if (parallelize) {
 				// iterate through vertices
-				#pragma omp parallel for schedule(dynamic, 4)
+				#pragma omp parallel for schedule(dynamic, 64)
 				for (int i = start_comp; i < end_comp; ++i) {
 					double new_val = x_outside[i];
 					const int start_j = tails_inside[i];
@@ -213,7 +213,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 				}
 				// compute error
 				err = c = 0;
-				#pragma omp parallel for firstprivate(c) reduction(+:err) schedule(dynamic, 4)
+				#pragma omp parallel for firstprivate(c) reduction(+:err) schedule(dynamic, 64)
 				for (int i = start_comp; i < end_comp; ++i) {
 					double curr = x_outside[i];
 					const int start_j = tails_inside[i];
