@@ -58,9 +58,12 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				alpha,
 				tol,
 				sccg->num_vs,
-				sccg->num_es,
-				sccg->heads,
-				sccg->tails,
+				sccg->num_es_inside,
+				sccg->heads_inside,
+				sccg->tails_inside,
+				sccg->num_es_outside,
+				sccg->heads_outside,
+				sccg->tails_outside,
 				sccg->ii,
 				sccg->inv_num_outlinks,
 				u,
@@ -160,9 +163,12 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		double alpha,
 		double tol,
 		int num_vs,
-		int num_es,
-		int* heads,
-		int* tails,
+		int num_es_inside,
+		int* heads_inside,
+		int* tails_inside,
+		int num_es_outside,
+		int* heads_outside,
+		int* tails_outside,
 		double* ii,
 		double* inv_num_outlinks,
 		double* uv,
@@ -178,34 +184,47 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
 		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+	// create x_outside
+	double* x_outside = new double[num_vs];
 	// run Gauss-Seidel for (I - alpha*P)*x = uv
 	ret->num_iter = 0;
 	for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
-		int start_comp = divisions[comp_i], end_comp = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
+		const int start_comp = divisions[comp_i];
+		const int end_comp = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
 		const bool parallelize = end_comp - start_comp > 512;
+		// initialize relevant x_outside values
+		for (int i = start_comp; i < end_comp; ++i) {
+			x_outside[i] = 0;
+			const int start_j = tails_outside[i];
+			const int end_j = (i + 1 != num_vs) ? tails_outside[i + 1] : num_es_outside;
+			for (int j = start_j; j < end_j; ++j)
+				x_outside[i] += x[heads_outside[j]];
+		}
 		double err, c;
 		do {
 			if (parallelize) {
 				// iterate through vertices
-				#pragma omp parallel for schedule(dynamic, 4)
+				#pragma omp parallel for if (parallelize) schedule(dynamic, 4)
 				for (int i = start_comp; i < end_comp; ++i) {
-					double new_val = 0;
-					int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+					double new_val = x_outside[i];
+					const int start_j = tails_inside[i];
+					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
-						new_val += x[heads[j]];
+						new_val += x[heads_inside[j]];
 					new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 					x[i] = new_val*inv_num_outlinks[i];
 				}
 				// compute error
 				err = c = 0;
-				#pragma omp parallel for firstprivate(c) reduction(+:err) schedule(dynamic, 4)
+				#pragma omp parallel for if (parallelize) firstprivate(c) reduction(+:err) schedule(dynamic, 4)
 				for (int i = start_comp; i < end_comp; ++i) {
-					double curr = 0;
-					int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+					double curr = x_outside[i];
+					const int start_j = tails_inside[i];
+					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
-						curr += x[heads[j]];
+						curr += x[heads_inside[j]];
 					// use compensation summation for: err += fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i])
 					double y = fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]) - c;
 					double t = err + y;
@@ -215,22 +234,24 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 			} else {
 				// iterate through vertices
 				for (int i = start_comp; i < end_comp; ++i) {
-					double new_val = 0;
-					int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+					double new_val = x_outside[i];
+					const int start_j = tails_inside[i];
+					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
-						new_val += x[heads[j]];
+						new_val += x[heads_inside[j]];
 					new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 					x[i] = new_val*inv_num_outlinks[i];
 				}
 				// compute error
 				err = c = 0;
 				for (int i = start_comp; i < end_comp; ++i) {
-					double curr = 0;
-					int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+					double curr = x_outside[i];
+					const int start_j = tails_inside[i];
+					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
-						curr += x[heads[j]];
+						curr += x[heads_inside[j]];
 					// use compensation summation for: err += fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i])
 					double y = fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]) - c;
 					double t = err + y;

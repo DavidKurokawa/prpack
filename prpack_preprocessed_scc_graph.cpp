@@ -5,19 +5,15 @@ using namespace prpack;
 using namespace std;
 
 prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_list* al) {
+	// initialize instance variables
 	num_vs = al->num_vs;
 	num_es = al->num_es;
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
 	ii = new double[num_vs];
-	convert(al, tails, heads);
-}
-
-// Convert the adjacency list to heads/tails format. This method will work regardless of the inlink/outlink orientation of the adjacency list
-void prpack_preprocessed_scc_graph::convert(prpack_adjacency_list* al, int*& x, int*& y) {
-	x = new int[num_vs];
-	y = new int[num_es];
-	// initialize variables
+	tails = new int[num_vs];
+	heads = new int[num_es];
+	// initialize Tarjan's algorithm variables
 	num_comps = 0;
 	int mn = 0;                 // the number of vertices seen so far
 	int sz = 0;					// size of st
@@ -79,19 +75,24 @@ void prpack_preprocessed_scc_graph::convert(prpack_adjacency_list* al, int*& x, 
 		}
 	}
 	// clean up variables
+	num_es_inside = num_es_outside = 0;
 	divisions = new int[num_comps];
 	int* encoding = num; // given original i, return new i
 	for (int i = 0; i < num_vs; ++i)
 		encoding[decoding[i]] = i;
-	for (int x_i = 0, y_i = 0; x_i < num_vs; ++x_i) {
-		ii[x_i] = 0;
-		x[x_i] = y_i;
-		for (int& curr : al->al[decoding[x_i]]) {
-			if (x_i == encoding[curr]) {
-				ii[x_i] += 1;
+	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
+		ii[tails_i] = 0;
+		tails[tails_i] = heads_i;
+		for (int& curr : al->al[decoding[tails_i]]) {
+			if (tails_i == encoding[curr]) {
+				ii[tails_i] += 1;
 				--num_es;
 			} else {
-				y[y_i++] = encoding[curr];
+				heads[heads_i++] = encoding[curr];
+				if (scc[curr] == scc[decoding[tails_i]])
+					++num_es_inside;
+				else
+					++num_es_outside;
 			}
 			++inv_num_outlinks[encoding[curr]];
 		}
@@ -112,5 +113,27 @@ void prpack_preprocessed_scc_graph::convert(prpack_adjacency_list* al, int*& x, 
 	for (int i = 0; i < num_vs; ++i)
 		if (ii[i] > 0.5)
 			ii[i] *= inv_num_outlinks[i];
+	// fill in inside and outside instance variables
+	tails_inside = new int[num_vs];
+	heads_inside = new int[num_es_inside];
+	tails_outside = new int[num_vs];
+	heads_outside = new int[num_es_outside];
+	num_es_inside = num_es_outside = 0;
+	for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
+		const int start_i = divisions[comp_i];
+		const int end_i = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
+		for (int i = start_i; i < end_i; ++i) {
+			const int start_j = tails[i];
+			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+			tails_inside[i] = num_es_inside;
+			tails_outside[i] = num_es_outside;
+			for (int j = start_j; j < end_j; ++j) {
+				if (start_i <= heads[j] && heads[j] < end_i)
+					heads_inside[num_es_inside++] = heads[j];
+				else
+					heads_outside[num_es_outside++] = heads[j];
+			}
+		}
+	}
 }
 
