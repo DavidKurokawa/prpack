@@ -54,7 +54,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				u,
 				v));
 		ret->method = "gs";
-	} else if (method == "sg" || (method == "" && u == v)) {
+	} else if (method == "sgs" || (method == "" && u == v)) {
 		if (sg == NULL)
 			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
 		TIME(compute_time, ret = solve_via_schur_gs(
@@ -69,7 +69,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->inv_num_outlinks,
 				u,
 				sg->decoding));
-		ret->method = "sg";
+		ret->method = "sgs";
 	} else {
 		if (sccg == NULL)
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
@@ -89,7 +89,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sccg->num_comps,
 				sccg->divisions,
 				sccg->decoding));
-		ret->method = "sccg";
+		ret->method = "sccgs";
 	}
 	ret->preprocess_time = preprocess_time;
 	ret->compute_time = compute_time;

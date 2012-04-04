@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
 	for (int i = 2; i < argc; ++i) {
 		string x(argv[i]);
 		int idx = x.find("=");
-		if (idx == string::npos) {
+		if (idx == (int) string::npos) {
 			prpack_utils::validate(x.length() == 2 && x[0] == '-', "Error: argument '" + x + "' is not valid");
 			prpack_utils::validate(i + 1 < argc, "Error: argument '" + x + "' does not specify value");
 			in.parse_arg(x, string(argv[++i]));
