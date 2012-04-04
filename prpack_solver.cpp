@@ -6,6 +6,7 @@ using namespace std;
 
 void prpack_solver::initialize() {
 	gsg = NULL;
+	sg = NULL;
 	sccg = NULL;
 }
 
@@ -51,6 +52,21 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				gsg->inv_num_outlinks,
 				u,
 				v));
+	} else if (u == v) {
+		if (sg == NULL)
+			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
+		TIME(compute_time, ret = solve_via_schur_gs(
+				alpha,
+				tol,
+				sg->num_vs,
+				sg->num_dangling_vs,
+				sg->num_es,
+				sg->heads,
+				sg->tails,
+				sg->ii,
+				sg->inv_num_outlinks,
+				u,
+				sg->decoding));
 	} else {
 		if (sccg == NULL)
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
@@ -78,9 +94,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	return ret;
 }
 
-// various solving methods ////////////////////////////////////////////////////////////////////////
+// VARIOUS SOLVING METHODS ////////////////////////////////////////////////////////////////////////
 
-// vanilla Gauss-Seidel
+// Vanilla Gauss-Seidel.
 prpack_result* prpack_solver::solve_via_gs(
 		double alpha,
 		double tol,
@@ -154,7 +170,85 @@ prpack_result* prpack_solver::solve_via_gs(
 	return ret;
 }
 
-// Gauss-Seidel using strongly connected components
+// Gauss-Seidel using the Schur complement to separate dangling nodes.
+prpack_result* prpack_solver::solve_via_schur_gs(
+		double alpha,
+		double tol,
+		int num_vs,
+		int num_dangling_vs,
+		int num_es,
+		int* heads,
+		int* tails,
+		double* ii,
+		double* inv_num_outlinks,
+		double* uv,
+		int* decoding) {
+	prpack_result* ret = new prpack_result();
+	// initialize uv values
+	double uv_const = 1.0/num_vs;
+	int uv_exists = (uv) ? 1 : 0;
+	uv = (uv) ? uv : &uv_const;
+	// initialize the eigenvector (and use personalization vector)
+	double* x = new double[num_vs];
+	for (int i = 0; i < num_vs - num_dangling_vs; ++i)
+		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+	// run Gauss-Seidel for the top left part of (I - alpha*P)*x = uv
+	ret->num_iter = 0;
+	double err, c;
+	do {
+		// iterate through vertices
+		for (int i = 0; i < num_vs - num_dangling_vs; ++i) {
+			double new_val = 0;
+			const int start_j = tails[i];
+			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+			for (int j = start_j; j < end_j; ++j)
+				// TODO: might want to use compensation summation for large: end_j - start_j
+				new_val += x[heads[j]];
+			new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
+			x[i] = new_val*inv_num_outlinks[i];
+		}
+		// compute error
+		err = c = 0;
+		for (int i = 0; i < num_vs - num_dangling_vs; ++i) {
+			double curr = 0;
+			const int start_j = tails[i];
+			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+			for (int j = start_j; j < end_j; ++j)
+				// TODO: might want to use compensation summation for large: end_j - start_j
+				curr += x[heads[j]];
+			COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
+		}
+		// update iteration index
+		++ret->num_iter;
+	} while (err >= tol*(num_vs - num_dangling_vs)/num_vs);
+	// solve for the dangling nodes
+	for (int i = num_vs - num_dangling_vs; i < num_vs; ++i) {
+		x[i] = 0;
+		const int start_j = tails[i];
+		const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+		for (int j = start_j; j < end_j; ++j)
+			x[i] += x[heads[j]];
+		x[i] = (alpha*x[i] + uv[uv_exists*i])/(1 - alpha*ii[i]);
+	}
+	// undo inv_num_outlinks transformation
+	for (int i = 0; i < num_vs - num_dangling_vs; ++i)
+		x[i] /= inv_num_outlinks[i];
+	// normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
+	double norm = 0;
+	for (int i = 0; i < num_vs; ++i)
+		norm += x[i];
+	norm = 1/norm;
+	for (int i = 0; i < num_vs; ++i)
+		x[i] *= norm;
+	// return results
+	ret->x = new double[num_vs];
+	for (int i = 0; i < num_vs; ++i)
+		ret->x[decoding[i]] = x[i];
+	free(x);
+	return ret;
+}
+
+// Gauss-Seidel using strongly connected components.
 prpack_result* prpack_solver::solve_via_scc_gs(
 		double alpha,
 		double tol,
@@ -249,7 +343,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 			}
 			// update iteration index
 			++ret->num_iter;
-		} while (err > tol*(end_comp - start_comp)/num_vs);
+		} while (err >= tol*(end_comp - start_comp)/num_vs);
 	}
 	// undo inv_num_outlinks transformation
 	for (int i = 0; i < num_vs; ++i)
@@ -266,6 +360,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	for (int i = 0; i < num_vs; ++i)
 		ret->x[decoding[i]] = x[i];
 	free(x);
+	free(x_outside);
 	return ret;
 }
 

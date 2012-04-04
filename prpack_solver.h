@@ -2,6 +2,7 @@
 #define PRPACK_SOLVER
 #include "prpack_adjacency_list.h"
 #include "prpack_preprocessed_gs_graph.h"
+#include "prpack_preprocessed_schur_graph.h"
 #include "prpack_preprocessed_scc_graph.h"
 #include "prpack_result.h"
 #include "prpack_csr.h"
@@ -16,6 +17,7 @@ namespace prpack {
 			// instance variables
 			prpack_adjacency_list* al;
 			prpack_preprocessed_gs_graph* gsg;
+			prpack_preprocessed_schur_graph* sg;
 			prpack_preprocessed_scc_graph* sccg;
 			// methods
 			void initialize();
@@ -30,6 +32,18 @@ namespace prpack {
 					double* inv_num_outlinks,
 					double* u,
 					double* v);
+			prpack_result* solve_via_schur_gs(
+					double alpha,
+					double tol,
+					int num_vs,
+					int num_dangling_vs,
+					int num_es,
+					int* heads,
+					int* tails,
+					double* ii,
+					double* inv_num_outlinks,
+					double* uv,
+					int* decoding);
 			prpack_result* solve_via_scc_gs(
 					double alpha,
 					double tol,
