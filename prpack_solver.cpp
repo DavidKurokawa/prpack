@@ -197,6 +197,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	double err, c;
 	do {
 		// iterate through vertices
+		#pragma omp parallel for schedule(dynamic, 64)
 		for (int i = 0; i < num_vs - num_dangling_vs; ++i) {
 			double new_val = 0;
 			const int start_j = tails[i];
@@ -209,6 +210,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 		}
 		// compute error
 		err = c = 0;
+		#pragma omp parallel for firstprivate(c) reduction(+:err) schedule(dynamic, 64)
 		for (int i = 0; i < num_vs - num_dangling_vs; ++i) {
 			double curr = 0;
 			const int start_j = tails[i];
@@ -222,6 +224,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 		++ret->num_iter;
 	} while (err >= tol*(num_vs - num_dangling_vs)/num_vs);
 	// solve for the dangling nodes
+	#pragma omp parallel for schedule(dynamic, 64)
 	for (int i = num_vs - num_dangling_vs; i < num_vs; ++i) {
 		x[i] = 0;
 		const int start_j = tails[i];
