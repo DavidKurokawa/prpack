@@ -1,6 +1,7 @@
 #include "prpack_solver.h"
 #include "prpack_utils.h"
 #include <cmath>
+#include <string>
 using namespace prpack;
 using namespace std;
 
@@ -30,15 +31,15 @@ prpack_solver::prpack_solver(const string& filename) {
 	al = new prpack_adjacency_list(filename);
 }
 
-prpack_result* prpack_solver::solve(double alpha, double tol) {
-	return solve(alpha, tol, NULL, NULL);
+prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
+	return solve(alpha, tol, NULL, NULL, method);
 }
 
-prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v) {
+prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v, const string& method) {
 	double preprocess_time = 0;
 	double compute_time = 0;
 	prpack_result* ret;
-	if (u != v) {
+	if (method == "gs" || (method == "" && u != v)) {
 		if (gsg == NULL)
 			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
 		TIME(compute_time, ret = solve_via_gs(
@@ -52,7 +53,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				gsg->inv_num_outlinks,
 				u,
 				v));
-	} else if (u == v) {
+		ret->method = "gs";
+	} else if (method == "sg" || (method == "" && u == v)) {
 		if (sg == NULL)
 			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
 		TIME(compute_time, ret = solve_via_schur_gs(
@@ -67,6 +69,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->inv_num_outlinks,
 				u,
 				sg->decoding));
+		ret->method = "sg";
 	} else {
 		if (sccg == NULL)
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
@@ -86,6 +89,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sccg->num_comps,
 				sccg->divisions,
 				sccg->decoding));
+		ret->method = "sccg";
 	}
 	ret->preprocess_time = preprocess_time;
 	ret->compute_time = compute_time;

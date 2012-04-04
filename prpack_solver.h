@@ -67,8 +67,8 @@ namespace prpack {
 			prpack_solver(prpack_adjacency_list* g);
 			prpack_solver(const std::string& filename);
 			// methods
-			prpack_result* solve(double alpha, double tol);
-			prpack_result* solve(double alpha, double tol, double* u, double* v);
+			prpack_result* solve(double alpha, double tol, const std::string& method);
+			prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);
 	};
 
 };

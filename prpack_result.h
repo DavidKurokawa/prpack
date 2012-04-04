@@ -1,5 +1,6 @@
 #ifndef PRPACK_RESULT
 #define PRPACK_RESULT
+#include <string>
 
 namespace prpack {
 
@@ -13,6 +14,7 @@ namespace prpack {
 		double postprocess_time;
 		double total_time;
 		int num_iter;
+		std::string method;
 	};
 
 };

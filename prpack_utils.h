@@ -1,5 +1,6 @@
 #ifndef PRPACK_UTILS
 #define PRPACK_UTILS
+#include <string>
 
 // Computes the time taken to do X and stores it in T.
 #define TIME(T, X)					\
@@ -20,6 +21,7 @@ namespace prpack {
 	class prpack_utils {
 		public:
 			static double get_time();
+			static void validate(bool condition, const std::string& msg);
 	};
 
 };
