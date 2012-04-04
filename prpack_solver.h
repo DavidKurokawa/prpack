@@ -21,7 +21,7 @@ namespace prpack {
 			prpack_preprocessed_scc_graph* sccg;
 			// methods
 			void initialize();
-			prpack_result* solve_via_gs(
+			static prpack_result* solve_via_gs(
 					double alpha,
 					double tol,
 					int num_vs,
@@ -32,7 +32,7 @@ namespace prpack {
 					double* inv_num_outlinks,
 					double* u,
 					double* v);
-			prpack_result* solve_via_schur_gs(
+			static prpack_result* solve_via_schur_gs(
 					double alpha,
 					double tol,
 					int num_vs,
@@ -44,7 +44,7 @@ namespace prpack {
 					double* inv_num_outlinks,
 					double* uv,
 					int* decoding);
-			prpack_result* solve_via_scc_gs(
+			static prpack_result* solve_via_scc_gs(
 					double alpha,
 					double tol,
 					int num_vs,
