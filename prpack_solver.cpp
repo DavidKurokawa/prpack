@@ -289,7 +289,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
 		const int start_comp = divisions[comp_i];
 		const int end_comp = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
-		const bool parallelize = false;//end_comp - start_comp > 512;
+		const bool parallelize = end_comp - start_comp > 512;
 		// initialize relevant x_outside values
 		for (int i = start_comp; i < end_comp; ++i) {
 			x_outside[i] = 0;
