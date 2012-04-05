@@ -1,6 +1,7 @@
 #include "prpack_utils.h"
 #include "prpack_solver.h"
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>

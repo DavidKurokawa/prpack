@@ -1,6 +1,8 @@
 #include "prpack_preprocessed_scc_graph.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
+#include <list>
 using namespace prpack;
 using namespace std;
 
@@ -83,18 +85,18 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
-		for (int& curr : al->al[decoding[tails_i]]) {
-			if (tails_i == encoding[curr]) {
+		for (list<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
+			if (tails_i == encoding[*curr]) {
 				ii[tails_i] += 1;
 				--num_es;
 			} else {
-				heads[heads_i++] = encoding[curr];
-				if (scc[curr] == scc[decoding[tails_i]])
+				heads[heads_i++] = encoding[*curr];
+				if (scc[*curr] == scc[decoding[tails_i]])
 					++num_es_inside;
 				else
 					++num_es_outside;
 			}
-			++inv_num_outlinks[encoding[curr]];
+			++inv_num_outlinks[encoding[*curr]];
 		}
 	}
 	divisions[0] = 0;

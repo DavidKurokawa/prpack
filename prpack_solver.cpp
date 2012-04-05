@@ -1,6 +1,7 @@
 #include "prpack_solver.h"
 #include "prpack_utils.h"
 #include <cmath>
+#include <cstdlib>
 #include <string>
 using namespace prpack;
 using namespace std;

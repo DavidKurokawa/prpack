@@ -1,6 +1,7 @@
 #include "prpack_preprocessed_schur_graph.h"
 #include <algorithm>
 #include <cstring>
+#include <list>
 using namespace prpack;
 using namespace std;
 
@@ -16,10 +17,10 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_adjacenc
 	decoding = new int[num_vs];
 	int seen = 0;
 	for (int b = 0; b < num_vs; ++b) {
-		for (int& a : al->al[b]) {
-			if (encoding[a] == -1)
-				encoding[a] = seen++;
-			++inv_num_outlinks[encoding[a]];
+		for (list<int>::iterator a = al->al[b].begin(); a != al->al[b].end(); ++a) {
+			if (encoding[*a] == -1)
+				encoding[*a] = seen++;
+			++inv_num_outlinks[encoding[*a]];
 		}
 	}
 	num_dangling_vs = num_vs - seen;
@@ -35,12 +36,12 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_adjacenc
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
-		for (int& curr : al->al[decoding[tails_i]]) {
-			if (decoding[tails_i] == curr) {
+		for (list<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
+			if (decoding[tails_i] == *curr) {
 				ii[tails_i] += 1;
 				--num_es;
 			} else {
-				heads[heads_i++] = encoding[curr];
+				heads[heads_i++] = encoding[*curr];
 			}
 		}
 		inv_num_outlinks[tails_i] = (inv_num_outlinks[tails_i] == 0) ? -1 : 1/inv_num_outlinks[tails_i];
