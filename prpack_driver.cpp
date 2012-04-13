@@ -1,11 +1,13 @@
 #include "prpack_utils.h"
 #include "prpack_solver.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <utility>
+#include <vector>
 using namespace prpack;
 using namespace std;
 
@@ -17,8 +19,8 @@ class input {
 		string format;	// TODO: not handled currently
 		double alpha;
 		double tol;
-		string u;		// TODO: not handled currently
-		string v;		// TODO: not handled currently
+		string u;
+		string v;
 		string method;
 		string output;
 		// constructor (default values can be set here)
@@ -53,6 +55,23 @@ class input {
 		}
 };
 
+double* read_vector(const string& filename) {
+	if (filename == "")
+		return NULL;
+	// read into double vector
+	vector<double> v;
+	FILE* f = fopen(filename.c_str(), "r");
+	double curr;
+	while (fscanf(f, "%lf", &curr) == 1)
+		v.push_back(curr);
+	fclose(f);
+	// convert to double array
+	double* ret = new double[v.size()];
+	for (int i = 0; i < (int) v.size(); ++i)
+		ret[i] = v[i];
+	return ret;
+}
+
 int main(int argc, char** argv) {
 	// parse command args
 	input in;
@@ -71,7 +90,9 @@ int main(int argc, char** argv) {
 	}
 	// solve
 	prpack_solver solver(in.graph);
-	prpack_result* res = solver.solve(in.alpha, in.tol, in.method);
+	double* u = read_vector(in.u);
+	double* v = (in.u == in.v) ? u : read_vector(in.v);
+	prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method);
 	// dump results
 	ostream* out = (in.output == "") ? &cout : new ofstream(in.output.c_str());
 	*out << "---------------------------" << endl;
