@@ -2,6 +2,7 @@
 #include "prpack_utils.h"
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 #include <string>
 using namespace prpack;
 using namespace std;
@@ -118,18 +119,15 @@ prpack_result* prpack_solver::solve_via_gs(
 	prpack_result* ret = new prpack_result();
 	// initialize u and v values
 	double u_const = 1.0/num_vs;
-	double v_const = (1.0 - alpha)/num_vs;
+	double v_const = 1.0/num_vs;
 	int u_exists = (u) ? 1 : 0;
 	int v_exists = (v) ? 1 : 0;
 	u = (u) ? u : &u_const;
 	v = (v) ? v : &v_const;
-	if (v_exists)
-		for (int i = 0; i < num_vs; ++i)
-			v[i] *= (1.0 - alpha);
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
-		x[i] = v[v_exists*i]/(1.0 - alpha)*inv_num_outlinks[i];
+		x[i] = v[v_exists*i]*inv_num_outlinks[i];
 	// initialize delta
 	double delta = 0;
 	for (int i = 0; i < num_vs; ++i)
@@ -149,7 +147,7 @@ prpack_result* prpack_solver::solve_via_gs(
 			for (int j = start_j; j < end_j; ++j)
 				// TODO: might want to use compensation summation for large: end_j - start_j
 				new_val += x[heads[j]];
-			new_val = alpha*new_val + v[v_exists*i];
+			new_val = alpha*new_val + (1 - alpha)*v[v_exists*i];
 			if (inv_num_outlinks[i] < 0) {
 				delta -= alpha*old_val;
 				new_val += delta*u[u_exists*i];
@@ -168,10 +166,6 @@ prpack_result* prpack_solver::solve_via_gs(
 	// undo inv_num_outlinks transformation
 	for (int i = 0; i < num_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
-	// clean up
-	if (v_exists)
-		for (int i = 0; i < num_vs; ++i)
-			v[i] /= (1.0 - alpha);
 	// return results
 	ret->x = x;
 	return ret;
