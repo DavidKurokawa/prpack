@@ -76,8 +76,34 @@ namespace prpack {
 					int num_comps,
 					int* divisions,
 					int* encoding,
+					int* decoding,
+					bool normalize = true);
+			static prpack_result* solve_via_scc_gs_uv(
+					double alpha,
+					double tol,
+					int num_vs,
+					int num_es_inside,
+					int* heads_inside,
+					int* tails_inside,
+					int num_es_outside,
+					int* heads_outside,
+					int* tails_outside,
+					double* ii,
+					double* inv_num_outlinks,
+					double* u,
+					double* v,
+					int num_comps,
+					int* divisions,
+					int* encoding,
 					int* decoding);
 			static double* permute(int length, double* a, int* coding);
+			static prpack_result* combine_uv(
+					int num_vs,
+					double* inv_num_outlinks,
+					int* encoding,
+					double alpha,
+					prpack_result* ret_u,
+					prpack_result* ret_v);
 		public:
 			// constructors
 			prpack_solver(prpack_csr* g);

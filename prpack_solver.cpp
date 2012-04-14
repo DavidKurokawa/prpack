@@ -2,7 +2,6 @@
 #include "prpack_utils.h"
 #include <cmath>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 using namespace prpack;
 using namespace std;
@@ -91,7 +90,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->encoding,
 				sg->decoding));
 		ret->method = "sgs_uv";
-	} else {
+	} else if (method == "sccgs" || (method == "" && u == v)) {
 		if (sccg == NULL)
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
 		TIME(compute_time, ret = solve_via_scc_gs(
@@ -112,6 +111,28 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sccg->encoding,
 				sccg->decoding));
 		ret->method = "sccgs";
+	} else {
+		if (sccg == NULL)
+			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
+		TIME(compute_time, ret = solve_via_scc_gs_uv(
+				alpha,
+				tol,
+				sccg->num_vs,
+				sccg->num_es_inside,
+				sccg->heads_inside,
+				sccg->tails_inside,
+				sccg->num_es_outside,
+				sccg->heads_outside,
+				sccg->tails_outside,
+				sccg->ii,
+				sccg->inv_num_outlinks,
+				u,
+				v,
+				sccg->num_comps,
+				sccg->divisions,
+				sccg->encoding,
+				sccg->decoding));
+		ret->method = "sccgs_uv";
 	}
 	ret->preprocess_time = preprocess_time;
 	ret->compute_time = compute_time;
@@ -288,7 +309,6 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
 		double* v,
 		int* encoding,
 		int* decoding) {
-	prpack_result* ret = new prpack_result();
 	// solve uv = u
 	prpack_result* ret_u = solve_via_schur_gs(
 			alpha,
@@ -320,26 +340,7 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
 			decoding,
 			false);
 	// combine the u and v cases
-	ret->num_vs = ret_u->num_es;
-	ret->num_es = ret_u->num_es;
-	double delta_u = 0;
-	double delta_v = 0;
-	for (int i = 0; i < num_vs; ++i) {
-		if (inv_num_outlinks[encoding[i]] < 0) {
-			delta_u += ret_u->x[i];
-			delta_v += ret_v->x[i];
-		}
-	}
-	double s = ((1 - alpha)*alpha*delta_v)/(1 - alpha*delta_u);
-	double t = 1 - alpha;
-	ret->x = new double[num_vs];
-	for (int i = 0; i < num_vs; ++i)
-		ret->x[i] = s*ret_u->x[i] + t*ret_v->x[i];
-	ret->num_iter = ret_u->num_iter + ret_v->num_iter;
-	// clean up and return
-	delete ret_u;
-	delete ret_v;
-	return ret;
+	return combine_uv(num_vs, inv_num_outlinks, encoding, alpha, ret_u, ret_v);
 }
 
 // Gauss-Seidel using strongly connected components.
@@ -359,7 +360,8 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		int num_comps,
 		int* divisions,
 		int* encoding,
-		int* decoding) {
+		int* decoding,
+		bool normalize) {
 	prpack_result* ret = new prpack_result();
 	// initialize uv values
 	double uv_const = 1.0/num_vs;
@@ -444,12 +446,14 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	for (int i = 0; i < num_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
 	// normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
-	double norm = 0;
-	for (int i = 0; i < num_vs; ++i)
-		norm += x[i];
-	norm = 1/norm;
-	for (int i = 0; i < num_vs; ++i)
-		x[i] *= norm;
+	if (normalize) {
+		double norm = 0;
+		for (int i = 0; i < num_vs; ++i)
+			norm += x[i];
+		norm = 1/norm;
+		for (int i = 0; i < num_vs; ++i)
+			x[i] *= norm;
+	}
 	// return results
 	ret->x = permute(num_vs, x, decoding);
 	free(x);
@@ -459,9 +463,69 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	return ret;
 }
 
+prpack_result* prpack_solver::solve_via_scc_gs_uv(
+		double alpha,
+		double tol,
+		int num_vs,
+		int num_es_inside,
+		int* heads_inside,
+		int* tails_inside,
+		int num_es_outside,
+		int* heads_outside,
+		int* tails_outside,
+		double* ii,
+		double* inv_num_outlinks,
+		double* u,
+		double* v,
+		int num_comps,
+		int* divisions,
+		int* encoding,
+		int* decoding) {
+	// solve uv = u
+	prpack_result* ret_u = solve_via_scc_gs(
+			alpha,
+			tol,
+			num_vs,
+			num_es_inside,
+			heads_inside,
+			tails_inside,
+			num_es_outside,
+			heads_outside,
+			tails_outside,
+			ii,
+			inv_num_outlinks,
+			u,
+			num_comps,
+			divisions,
+			encoding,
+			decoding,
+			false);
+	// solve uv = v
+	prpack_result* ret_v = solve_via_scc_gs(
+			alpha,
+			tol,
+			num_vs,
+			num_es_inside,
+			heads_inside,
+			tails_inside,
+			num_es_outside,
+			heads_outside,
+			tails_outside,
+			ii,
+			inv_num_outlinks,
+			v,
+			num_comps,
+			divisions,
+			encoding,
+			decoding,
+			false);
+	// combine u and v
+	return combine_uv(num_vs, inv_num_outlinks, encoding, alpha, ret_u, ret_v);
+}
+
 // VARIOUS HELPER METHODS /////////////////////////////////////////////////////////////////////////
 
-// Permute a vector
+// Permute a vector.
 double* prpack_solver::permute(int length, double* a, int* coding) {
 	double* ret = new double[length];
 	for (int i = 0; i < length; ++i)
@@ -469,3 +533,31 @@ double* prpack_solver::permute(int length, double* a, int* coding) {
 	return ret;
 }
 
+// Combine u and v results.
+prpack_result* prpack_solver::combine_uv(
+		int num_vs,
+		double* inv_num_outlinks,
+		int* encoding,
+		double alpha,
+		prpack_result* ret_u,
+		prpack_result* ret_v) {
+	prpack_result* ret = new prpack_result();
+	double delta_u = 0;
+	double delta_v = 0;
+	for (int i = 0; i < num_vs; ++i) {
+		if (inv_num_outlinks[encoding[i]] < 0) {
+			delta_u += ret_u->x[i];
+			delta_v += ret_v->x[i];
+		}
+	}
+	double s = ((1 - alpha)*alpha*delta_v)/(1 - alpha*delta_u);
+	double t = 1 - alpha;
+	ret->x = new double[num_vs];
+	for (int i = 0; i < num_vs; ++i)
+		ret->x[i] = s*ret_u->x[i] + t*ret_v->x[i];
+	ret->num_iter = ret_u->num_iter + ret_v->num_iter;
+	// clean up and return
+	delete ret_u;
+	delete ret_v;
+	return ret;
+}
