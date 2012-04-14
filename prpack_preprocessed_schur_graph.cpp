@@ -12,7 +12,7 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_adjacenc
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
 	// permute dangling nodes to end
-	int* encoding = new int[num_vs];
+	encoding = new int[num_vs];
 	memset(encoding, -1, num_vs*sizeof(encoding[0]));
 	decoding = new int[num_vs];
 	int seen = 0;

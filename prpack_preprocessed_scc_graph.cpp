@@ -79,7 +79,7 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	// clean up variables
 	num_es_inside = num_es_outside = 0;
 	divisions = new int[num_comps];
-	int* encoding = num; // given original i, return new i
+	encoding = num; // given original i, return new i
 	for (int i = 0; i < num_vs; ++i)
 		encoding[decoding[i]] = i;
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
@@ -108,7 +108,6 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	free(cs1);
 	free(cs2);
 	free(scc);
-	free(num);
 	free(st);
 	free(low);
 	// set up ii

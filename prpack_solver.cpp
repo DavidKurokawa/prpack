@@ -69,6 +69,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->ii,
 				sg->inv_num_outlinks,
 				u,
+				sg->encoding,
 				sg->decoding));
 		ret->method = "sgs";
 	} else {
@@ -89,6 +90,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				u,
 				sccg->num_comps,
 				sccg->divisions,
+				sccg->encoding,
 				sccg->decoding));
 		ret->method = "sccgs";
 	}
@@ -187,12 +189,13 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 		double* ii,
 		double* inv_num_outlinks,
 		double* uv,
+		int* encoding,
 		int* decoding) {
 	prpack_result* ret = new prpack_result();
 	// initialize uv values
 	double uv_const = 1.0/num_vs;
 	int uv_exists = (uv) ? 1 : 0;
-	uv = (uv) ? uv : &uv_const;
+	uv = (uv) ? permute(num_vs, uv, encoding) : &uv_const;
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs - num_dangling_vs; ++i)
@@ -249,10 +252,10 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	for (int i = 0; i < num_vs; ++i)
 		x[i] *= norm;
 	// return results
-	ret->x = new double[num_vs];
-	for (int i = 0; i < num_vs; ++i)
-		ret->x[decoding[i]] = x[i];
+	ret->x = permute(num_vs, x, decoding);
 	free(x);
+	if (uv_exists)
+		free(uv);
 	return ret;
 }
 
@@ -272,12 +275,13 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		double* uv,
 		int num_comps,
 		int* divisions,
+		int* encoding,
 		int* decoding) {
 	prpack_result* ret = new prpack_result();
 	// initialize uv values
 	double uv_const = 1.0/num_vs;
 	int uv_exists = (uv) ? 1 : 0;
-	uv = (uv) ? uv : &uv_const;
+	uv = (uv) ? permute(num_vs, uv, encoding) : &uv_const;
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
@@ -364,11 +368,21 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	for (int i = 0; i < num_vs; ++i)
 		x[i] *= norm;
 	// return results
-	ret->x = new double[num_vs];
-	for (int i = 0; i < num_vs; ++i)
-		ret->x[decoding[i]] = x[i];
+	ret->x = permute(num_vs, x, decoding);
 	free(x);
 	free(x_outside);
+	if (uv_exists)
+		free(uv);
+	return ret;
+}
+
+// VARIOUS HELPER METHODS /////////////////////////////////////////////////////////////////////////
+
+// Permute a vector
+double* prpack_solver::permute(int length, double* a, int* coding) {
+	double* ret = new double[length];
+	for (int i = 0; i < length; ++i)
+		ret[coding[i]] = a[i];
 	return ret;
 }
 

@@ -43,6 +43,7 @@ namespace prpack {
 					double* ii,
 					double* inv_num_outlinks,
 					double* uv,
+					int* encoding,
 					int* decoding);
 			static prpack_result* solve_via_scc_gs(
 					double alpha,
@@ -59,7 +60,9 @@ namespace prpack {
 					double* uv,
 					int num_comps,
 					int* divisions,
+					int* encoding,
 					int* decoding);
+			static double* permute(int length, double* a, int* coding);
 		public:
 			// constructors
 			prpack_solver(prpack_csr* g);

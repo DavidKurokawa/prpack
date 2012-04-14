@@ -9,6 +9,7 @@ namespace prpack {
 		public:
 			// instance variables
 			int num_dangling_vs;
+			int* encoding;
 			int* decoding;
 			// constructor
 			prpack_preprocessed_schur_graph(prpack_adjacency_list* al);
