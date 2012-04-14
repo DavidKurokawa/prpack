@@ -2,8 +2,8 @@
 #define PRPACK_ADJACENCY_LIST
 #include "prpack_csr.h"
 #include "prpack_edge_list.h"
-#include <list>
 #include <string>
+#include <vector>
 
 namespace prpack {
 
@@ -12,7 +12,7 @@ namespace prpack {
 			// instance variables
 			int num_vs;
 			int num_es;
-			std::list<int>* al;
+			std::vector<int>* al;
 			// constructors
 			prpack_adjacency_list(prpack_csr* g);
 			prpack_adjacency_list(prpack_edge_list* g);

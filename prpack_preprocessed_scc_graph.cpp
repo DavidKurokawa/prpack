@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <list>
+#include <vector>
 using namespace prpack;
 using namespace std;
 
@@ -27,8 +27,8 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	int* st = new int[num_vs];  // a stack for the dfs
 	memset(num, -1, num_vs*sizeof(num[0]));
 	memset(scc, -1, num_vs*sizeof(scc[0]));
-	int* cs1 = new int[num_vs];                                 // call stack variable for dfs
-	list<int>::iterator* cs2 = new list<int>::iterator[num_vs]; // call stack variable for dfs
+	int* cs1 = new int[num_vs];                                     // call stack variable for dfs
+	vector<int>::iterator* cs2 = new vector<int>::iterator[num_vs]; // call stack variable for dfs
 	// run iterative Tarjan's algorithm
 	for (int root = 0; root < num_vs; ++root) {
 		if (num[root] != -1)
@@ -39,7 +39,7 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 		// dfs
 		while (csz) {
 			int p = cs1[csz - 1]; // node we're dfs-ing on
-			list<int>::iterator& it = cs2[csz - 1]; // iteration of the for loop
+			vector<int>::iterator& it = cs2[csz - 1]; // iteration of the for loop
 			if (it == al->al[p].begin()) {
 				low[p] = num[p] = mn++;
 				st[sz++] = p;
@@ -85,7 +85,7 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
-		for (list<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
+		for (vector<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
 			if (tails_i == encoding[*curr]) {
 				ii[tails_i] += 1;
 				--num_es;
