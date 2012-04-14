@@ -11,8 +11,6 @@ namespace prpack {
 		double* x;
 		double preprocess_time;
 		double compute_time;
-		double postprocess_time;
-		double total_time;
 		int num_iter;
 		std::string method;
 	};

@@ -41,7 +41,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	double preprocess_time = 0;
 	double compute_time = 0;
 	prpack_result* ret;
-	if (method == "gs" || (method == "" && u != v)) {
+	if (method == "gs") {
 		if (gsg == NULL)
 			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
 		TIME(compute_time, ret = solve_via_gs(
@@ -73,6 +73,24 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->encoding,
 				sg->decoding));
 		ret->method = "sgs";
+	} else if (method == "sgs_uv" || (method == "" && u != v)) {
+		if (sg == NULL)
+			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
+		TIME(compute_time, ret = solve_via_schur_gs_uv(
+				alpha,
+				tol,
+				sg->num_vs,
+				sg->num_dangling_vs,
+				sg->num_es,
+				sg->heads,
+				sg->tails,
+				sg->ii,
+				sg->inv_num_outlinks,
+				u,
+				v,
+				sg->encoding,
+				sg->decoding));
+		ret->method = "sgs_uv";
 	} else {
 		if (sccg == NULL)
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
@@ -184,7 +202,8 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 		double* inv_num_outlinks,
 		double* uv,
 		int* encoding,
-		int* decoding) {
+		int* decoding,
+		bool normalize) {
 	prpack_result* ret = new prpack_result();
 	// initialize uv values
 	double uv_const = 1.0/num_vs;
@@ -239,17 +258,87 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	for (int i = 0; i < num_vs - num_dangling_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
 	// normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
-	double norm = 0;
-	for (int i = 0; i < num_vs; ++i)
-		norm += x[i];
-	norm = 1/norm;
-	for (int i = 0; i < num_vs; ++i)
-		x[i] *= norm;
+	if (normalize) {
+		double norm = 0;
+		for (int i = 0; i < num_vs; ++i)
+			norm += x[i];
+		norm = 1/norm;
+		for (int i = 0; i < num_vs; ++i)
+			x[i] *= norm;
+	}
 	// return results
 	ret->x = permute(num_vs, x, decoding);
 	free(x);
 	if (uv_exists)
 		free(uv);
+	return ret;
+}
+
+prpack_result* prpack_solver::solve_via_schur_gs_uv(
+		double alpha,
+		double tol,
+		int num_vs,
+		int num_dangling_vs,
+		int num_es,
+		int* heads,
+		int* tails,
+		double* ii,
+		double* inv_num_outlinks,
+		double* u,
+		double* v,
+		int* encoding,
+		int* decoding) {
+	prpack_result* ret = new prpack_result();
+	// solve uv = u
+	prpack_result* ret_u = solve_via_schur_gs(
+			alpha,
+			tol,
+			num_vs,
+			num_dangling_vs,
+			num_es,
+			heads,
+			tails,
+			ii,
+			inv_num_outlinks,
+			u,
+			encoding,
+			decoding,
+			false);
+	// solve uv = v
+	prpack_result* ret_v = solve_via_schur_gs(
+			alpha,
+			tol,
+			num_vs,
+			num_dangling_vs,
+			num_es,
+			heads,
+			tails,
+			ii,
+			inv_num_outlinks,
+			v,
+			encoding,
+			decoding,
+			false);
+	// combine the u and v cases
+	ret->num_vs = ret_u->num_es;
+	ret->num_es = ret_u->num_es;
+	double delta_u = 0;
+	double delta_v = 0;
+	for (int i = 0; i < num_vs; ++i) {
+		if (inv_num_outlinks[encoding[i]] < 0) {
+			delta_u += ret_u->x[i];
+			delta_v += ret_v->x[i];
+		}
+	}
+	double s = ((1 - alpha)*alpha*delta_v)/(1 - alpha*delta_u);
+	double t = 1 - alpha;
+	ret->x = new double[num_vs];
+	for (int i = 0; i < num_vs; ++i)
+		ret->x[i] = s*ret_u->x[i] + t*ret_v->x[i];
+	ret->num_iter = ret_u->num_iter + ret_v->num_iter;
+	// clean up and return
+	free(ret_u);
+	free(ret_v);
 	return ret;
 }
 
