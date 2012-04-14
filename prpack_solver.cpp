@@ -337,8 +337,8 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
 		ret->x[i] = s*ret_u->x[i] + t*ret_v->x[i];
 	ret->num_iter = ret_u->num_iter + ret_v->num_iter;
 	// clean up and return
-	free(ret_u);
-	free(ret_v);
+	delete ret_u;
+	delete ret_v;
 	return ret;
 }
 
