@@ -17,6 +17,7 @@ namespace prpack {
 			int* tails_outside;
 			int num_comps;
 			int* divisions;
+			int* encoding;
 			int* decoding;
 			// constructor
 			prpack_preprocessed_scc_graph(prpack_adjacency_list* al);

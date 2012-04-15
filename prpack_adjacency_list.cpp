@@ -1,6 +1,7 @@
 #include "prpack_adjacency_list.h"
 #include <cassert>
 #include <fstream>
+#include <vector>
 using namespace prpack;
 using namespace std;
 
@@ -20,7 +21,7 @@ prpack_adjacency_list::prpack_adjacency_list(const string& filename) {
 	assert(fscanf(f, "%d%f%d", &num_vs, &blah, &num_es) == 3);
 	// read in all the edges
 	int h, t;
-	al = new list<int>[num_vs];
+	al = new vector<int>[num_vs];
 	for (int i = 0; i < num_es; ++i) {
 		assert(fscanf(f, "%d%d%f", &h, &t, &blah) == 3);
 		al[t].push_back(h);

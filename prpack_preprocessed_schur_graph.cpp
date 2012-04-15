@@ -1,7 +1,7 @@
 #include "prpack_preprocessed_schur_graph.h"
 #include <algorithm>
 #include <cstring>
-#include <list>
+#include <vector>
 using namespace prpack;
 using namespace std;
 
@@ -12,12 +12,12 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_adjacenc
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
 	// permute dangling nodes to end
-	int* encoding = new int[num_vs];
+	encoding = new int[num_vs];
 	memset(encoding, -1, num_vs*sizeof(encoding[0]));
 	decoding = new int[num_vs];
 	int seen = 0;
 	for (int b = 0; b < num_vs; ++b) {
-		for (list<int>::iterator a = al->al[b].begin(); a != al->al[b].end(); ++a) {
+		for (vector<int>::iterator a = al->al[b].begin(); a != al->al[b].end(); ++a) {
 			if (encoding[*a] == -1)
 				encoding[*a] = seen++;
 			++inv_num_outlinks[encoding[*a]];
@@ -36,7 +36,7 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_adjacenc
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
-		for (list<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
+		for (vector<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
 			if (decoding[tails_i] == *curr) {
 				ii[tails_i] += 1;
 				--num_es;
