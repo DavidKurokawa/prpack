@@ -13,7 +13,7 @@ namespace prpack {
 			double* x;
 			double preprocess_time;
 			double compute_time;
-			int num_iter;
+			long long num_es_touched;
 			std::string method;
 			// destructor
 			~prpack_result();
