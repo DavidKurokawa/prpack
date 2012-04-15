@@ -15,6 +15,7 @@ namespace prpack {
 		double total_time;
 		int num_iter;
 		std::string method;
+		int converged;
 	};
 
 };

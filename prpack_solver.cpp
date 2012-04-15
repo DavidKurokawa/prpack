@@ -36,7 +36,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, const string& meth
 	return solve(alpha, tol, NULL, NULL, method);
 }
 
-prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v, const string& method) {
+prpack_result* prpack_solver::solve(double alpha, double tol, 
+    double* u, double* v, const string& method) {
 	double preprocess_time = 0;
 	double compute_time = 0;
 	prpack_result* ret;
@@ -101,7 +102,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 
 // VARIOUS SOLVING METHODS ////////////////////////////////////////////////////////////////////////
 
-// Vanilla Gauss-Seidel.
+// Implement a gauss-seidel-like process with a strict error bound
+// we return a solution with 1-norm error less than tol.
 prpack_result* prpack_solver::solve_via_gs(
 		double alpha,
 		double tol,
@@ -116,60 +118,55 @@ prpack_result* prpack_solver::solve_via_gs(
 	prpack_result* ret = new prpack_result();
 	// initialize u and v values
 	double u_const = 1.0/num_vs;
-	double v_const = (1.0 - alpha)/num_vs;
+	double v_const = 1.0/num_vs;
 	int u_exists = (u) ? 1 : 0;
 	int v_exists = (v) ? 1 : 0;
 	u = (u) ? u : &u_const;
 	v = (v) ? v : &v_const;
-	if (v_exists)
-		for (int i = 0; i < num_vs; ++i)
-			v[i] *= (1.0 - alpha);
+	// Note to Dave, we can't rescale v because we could be running this
+	// same routine from multiple threads.
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
-	for (int i = 0; i < num_vs; ++i)
-		x[i] = v[v_exists*i]/(1.0 - alpha)*inv_num_outlinks[i];
+	for (int i = 0; i < num_vs; ++i) {
+		x[i] = 0.;
+	}
 	// initialize delta
-	double delta = 0;
-	for (int i = 0; i < num_vs; ++i)
-		if (inv_num_outlinks[i] < 0)
-			delta += x[i]/inv_num_outlinks[i];
-	delta *= alpha;
-	// run Gauss-Seidel
-	ret->num_iter = 0;
-	double err, old_val, new_val, c = 0;
+	double delta = 0.;
+	// run Gauss-Seidel, note that we store x/deg[i] throughout this 
+	// iteration.
+	int maxiter = (int)(std::min(log(tol)/log(alpha),(double)PRPACK_SOLVER_MAX_ITERS));
+	ret->num_iter = 0;	
+	double err=1., c = 0.;
 	do {
 		// iterate through vertices
-		err = 0;
 		for (int i = 0; i < num_vs; ++i) {
-			old_val = x[i]/inv_num_outlinks[i];
-			new_val = 0;
+			double old_val = x[i]/inv_num_outlinks[i]; // adjust back to the "true" value.
+			double new_val = 0.;
 			int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
-			for (int j = start_j; j < end_j; ++j)
+			for (int j = start_j; j < end_j; ++j) {
 				// TODO: might want to use compensation summation for large: end_j - start_j
-				new_val += x[heads[j]];
-			new_val = alpha*new_val + v[v_exists*i];
+				new_val += x[heads[j]];				
+			}			
+			new_val = alpha*new_val + alpha*ii[i]*old_val + (1.0-alpha)*v[v_exists*i];
+			new_val += delta*u[u_exists*i]; // add the dangling node adjustment
 			if (inv_num_outlinks[i] < 0) {
-				delta -= alpha*old_val;
-				new_val += delta*u[u_exists*i];
-				new_val /= 1 - alpha*u[u_exists*i];
-				delta += alpha*new_val;
-			} else {
-				new_val += delta*u[u_exists*i];
-				new_val /= 1 - alpha*ii[i];
-			}
-			COMPENSATED_SUM(err, fabs(new_val - old_val), c);
+				delta += alpha*(new_val - old_val);
+			} 
+			// note that new_val > old_val, but the fabs is just for 
+			COMPENSATED_SUM(err, -(new_val - old_val), c);
 			x[i] = new_val*inv_num_outlinks[i];
 		}
 		// update iteration index
 		++ret->num_iter;
-	} while (err >= tol);
+	} while (err >= tol && ret->num_iter < maxiter);
+	if (err >= tol) {
+	    ret->converged = 0;
+	} else {
+	    ret->converged = 1;
+	}
 	// undo inv_num_outlinks transformation
 	for (int i = 0; i < num_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
-	// clean up
-	if (v_exists)
-		for (int i = 0; i < num_vs; ++i)
-			v[i] /= (1.0 - alpha);
 	// return results
 	ret->x = x;
 	return ret;

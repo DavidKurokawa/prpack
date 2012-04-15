@@ -9,6 +9,9 @@
 #include "prpack_edge_list.h"
 #include <string>
 
+// TODO Make this a user configurable variable
+#define PRPACK_SOLVER_MAX_ITERS 1000000
+
 namespace prpack {
 
 	// Solver class.
