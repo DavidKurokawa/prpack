@@ -72,6 +72,14 @@ double* read_vector(const string& filename) {
 	return ret;
 }
 
+void write_vector(double *x, int n, ostream& out) {
+    out.precision(16);
+    out << scientific;
+    for (int i=0; i<n; ++i) {
+        out << x[i] << std::endl;
+    }
+}
+
 int main(int argc, char** argv) {
 	// parse command args
 	input in;
@@ -93,8 +101,11 @@ int main(int argc, char** argv) {
 	double* u = read_vector(in.u);
 	double* v = (in.u == in.v) ? u : read_vector(in.v);
 	prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method);
-	// dump results
-	ostream* out = (in.output == "") ? &cout : new ofstream(in.output.c_str());
+	// create output stream for text data
+	ostream* out = &cout; // usually, this is cout
+	if (in.output == "-") {
+	    out = &cerr; 
+	} 
 	*out << "---------------------------" << endl;
 	*out << "graph = " << in.graph << endl;
 	*out << "number of vertices = " << res->num_vs << endl;
@@ -113,5 +124,15 @@ int main(int argc, char** argv) {
 	for (int i = res->num_vs - 1; i >= 0 && i >= res->num_vs - 20; --i)
 		*out << "site = " << xval_idx[i].second << ", score = " << xval_idx[i].first << endl;
 	free(xval_idx);
+	
+	// write the entire vector
+    if (in.output != "") {
+        if (in.output == "-") {
+            write_vector(res->x, res->num_vs, cout);
+        } else {
+            ofstream outfile(in.output.c_str());
+            write_vector(res->x, res->num_vs, outfile);
+        }
+    }
 }
 

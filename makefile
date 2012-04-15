@@ -7,6 +7,16 @@ all: ${PROG}
 	
 ${PROG}: ${OBJS}
 	${CXX} ${CXXFLAGS} -o $@ ${OBJS}
+	
+test: $(PROG)
+	./prpack_driver data/jazz.smat --output=- 2>/dev/null | \
+	  python test/checkprvec.py data/jazz.smat -
+	./prpack_driver data/jazz.smat --output=- -m sgs 2>/dev/null | \
+	  python test/checkprvec.py data/jazz.smat -
+	./prpack_driver data/jazz.smat --output=- -m sccgs 2>/dev/null| \
+	  python test/checkprvec.py data/jazz.smat - 
 
 clean:
 	rm *.o ${PROG} -f
+
+.PHONY: all clean test
