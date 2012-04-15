@@ -56,6 +56,21 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 				u,
 				v));
 		ret->method = "gs";
+	} if (method == "gserr") {
+		if (gsg == NULL)
+			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
+		TIME(compute_time, ret = solve_via_gs_err(
+				alpha,
+				tol,
+				gsg->num_vs,
+				gsg->num_es,
+				gsg->heads,
+				gsg->tails,
+				gsg->ii,
+				gsg->inv_num_outlinks,
+				u,
+				v));
+		ret->method = "gs";
 	} else if (method == "sgs" || (method == "" && u == v)) {
 		if (sg == NULL)
 			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
@@ -144,9 +159,77 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 
 // VARIOUS SOLVING METHODS ////////////////////////////////////////////////////////////////////////
 
+// Vanilla Gauss-Seidel.
+prpack_result* prpack_solver::solve_via_gs(
+		double alpha,
+		double tol,
+		int num_vs,
+		int num_es,
+		int* heads,
+		int* tails,
+		double* ii,
+		double* inv_num_outlinks,
+		double* u,
+		double* v) {
+	prpack_result* ret = new prpack_result();
+	// initialize u and v values
+	double u_const = 1.0/num_vs;
+	double v_const = 1.0/num_vs;
+	int u_exists = (u) ? 1 : 0;
+	int v_exists = (v) ? 1 : 0;
+	u = (u) ? u : &u_const;
+	v = (v) ? v : &v_const;
+	// initialize the eigenvector (and use personalization vector)
+	double* x = new double[num_vs];
+	for (int i = 0; i < num_vs; ++i)
+		x[i] = v[v_exists*i]*inv_num_outlinks[i];
+	// initialize delta
+	double delta = 0;
+	for (int i = 0; i < num_vs; ++i)
+		if (inv_num_outlinks[i] < 0)
+			delta += x[i]/inv_num_outlinks[i];
+	delta *= alpha;
+	// run Gauss-Seidel
+	ret->num_es_touched = 0;
+	double err, old_val, new_val, c = 0;
+	do {
+		// iterate through vertices
+		err = 0;
+		for (int i = 0; i < num_vs; ++i) {
+			old_val = x[i]/inv_num_outlinks[i];
+			new_val = 0;
+			int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+			for (int j = start_j; j < end_j; ++j)
+				// TODO: might want to use compensation summation for large: end_j - start_j
+				new_val += x[heads[j]];
+			new_val = alpha*new_val + (1 - alpha)*v[v_exists*i];
+			if (inv_num_outlinks[i] < 0) {
+				delta -= alpha*old_val;
+				new_val += delta*u[u_exists*i];
+				new_val /= 1 - alpha*u[u_exists*i];
+				delta += alpha*new_val;
+			} else {
+				new_val += delta*u[u_exists*i];
+				new_val /= 1 - alpha*ii[i];
+			}
+			COMPENSATED_SUM(err, fabs(new_val - old_val), c);
+			x[i] = new_val*inv_num_outlinks[i];
+		}
+		// update iteration index
+		ret->num_es_touched += num_es;
+	} while (err >= tol/(1-alpha));
+	// undo inv_num_outlinks transformation
+	for (int i = 0; i < num_vs; ++i)
+		x[i] /= inv_num_outlinks[i];
+	// return results
+	ret->x = x;
+	return ret;
+}
+
+
 // Implement a gauss-seidel-like process with a strict error bound
 // we return a solution with 1-norm error less than tol.
-prpack_result* prpack_solver::solve_via_gs(
+prpack_result* prpack_solver::solve_via_gs_err(
 		double alpha,
 		double tol,
 		int num_vs,
@@ -176,8 +259,9 @@ prpack_result* prpack_solver::solve_via_gs(
 	double delta = 0.;
 	// run Gauss-Seidel, note that we store x/deg[i] throughout this 
 	// iteration.
-	int maxiter = (int)(std::min(log(tol)/log(alpha),(double)PRPACK_SOLVER_MAX_ITERS));
-	ret->num_iter = 0;	
+	long long maxedges = (long long)((double)num_es*std::min(
+	                        log(tol)/log(alpha),
+	                        (double)PRPACK_SOLVER_MAX_ITERS));
 	ret->num_es_touched = 0;
 	double err=1., c = 0.;
 	do {
@@ -201,8 +285,7 @@ prpack_result* prpack_solver::solve_via_gs(
 		}
 		// update iteration index
 		ret->num_es_touched += num_es;
-		++ret->num_iter;
-	} while (err >= tol && ret->num_iter < maxiter);
+	} while (err >= tol && ret->num_es_touched < maxedges);
 	if (err >= tol) {
 	    ret->converged = 0;
 	} else {

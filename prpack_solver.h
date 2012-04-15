@@ -35,6 +35,17 @@ namespace prpack {
 					double* inv_num_outlinks,
 					double* u,
 					double* v);
+			static prpack_result* solve_via_gs_err(
+					double alpha,
+					double tol,
+					int num_vs,
+					int num_es,
+					int* heads,
+					int* tails,
+					double* ii,
+					double* inv_num_outlinks,
+					double* u,
+					double* v);
 			static prpack_result* solve_via_schur_gs(
 					double alpha,
 					double tol,

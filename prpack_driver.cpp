@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
 	*out << "preprocess time = " << res->preprocess_time << "s" << endl;
 	*out << "compute time = " << res->compute_time << "s" << endl;
 	*out << "number of edges touched = " << res->num_es_touched << endl;
+	*out << "converged = " << res->converged << endl;
 	*out << "---------------------------" << endl;
 	pair<double, int>* xval_idx = new pair<double, int>[res->num_vs];
 	for (int i = 0; i < res->num_vs; ++i)
