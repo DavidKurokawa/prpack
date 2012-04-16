@@ -17,6 +17,9 @@ namespace prpack {
 			prpack_adjacency_list(prpack_csr* g);
 			prpack_adjacency_list(prpack_edge_list* g);
 			prpack_adjacency_list(const std::string& filename);
+			prpack_adjacency_list(int num_vs_, std::vector<int>* al_);
+			prpack_adjacency_list(int nverts, int nedges, 
+			    std::pair<int,int>* edges);
 	};
 
 };

@@ -8,8 +8,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <omp.h>
 using namespace prpack;
 using namespace std;
+
+// in prpack_driver_benchmark.cpp
+void benchmark();
 
 // Contains all possible input parameters.
 class input {
@@ -96,6 +100,12 @@ int main(int argc, char** argv) {
 			in.parse_arg(x.substr(0, idx), x.substr(idx + 1));
 		}
 	}
+
+    if (in.graph == "?") {
+        benchmark();
+        return 0;
+    }	
+	
 	// solve
 	prpack_solver solver(in.graph);
 	double* u = read_vector(in.u);
