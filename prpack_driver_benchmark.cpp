@@ -37,7 +37,7 @@ using namespace std;
   #define GCC_VERSION (__GNUC__ * 10000 \
                                                    + __GNUC_MINOR__ * 100 \
                                                    + __GNUC_PATCHLEVEL__)
-  #if GCC_VERSION < 40300
+  #if GCC_VERSION < 40600
     #include <tr1/random>
     #define tr1ns std::tr1
     #define uniform_real_distribution uniform_real
@@ -53,15 +53,15 @@ using namespace std;
 
 tr1ns::mt19937 sparfun_rand;
 
-typedef tr1ns::mt19937                                        generator_t;
-typedef tr1ns::uniform_real<double>                           distribution_t;
+typedef tr1ns::mt19937 generator_t;
+typedef tr1ns::uniform_real_distribution <double> distribution_t;
 typedef tr1ns::variate_generator<generator_t, distribution_t> variate_t;
 variate_t sparfun_rand_unif(sparfun_rand, distribution_t(0.0, 1.0));
 
 
 /** Generate a uniform random number. */
 double sf_rand(double min0, double max0) {
-  tr1ns::uniform_real<double> dist(min0,max0);
+  tr1ns::uniform_real_distribution<double> dist(min0,max0);
   return dist(sparfun_rand_unif);
 }
 
@@ -88,7 +88,7 @@ size_t sf_rand_distribution(size_t n, double* dist)
 unsigned int sf_rand_size(size_t maxval)
 {
     assert(maxval > 0);
-    tr1ns::uniform_int<size_t> dist(0,maxval-1);
+    tr1ns::uniform_int_distribution<size_t> dist(0,maxval-1);
     return dist(sparfun_rand_unif);
 }
 
