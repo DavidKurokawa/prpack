@@ -2,14 +2,13 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <vector>
 using namespace prpack;
 using namespace std;
 
 prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_list* al) {
 	// initialize instance variables
 	num_vs = al->num_vs;
-	num_es = al->num_es;
+	num_es = al->num_es - al->num_self_es;
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
 	ii = new double[num_vs];
@@ -27,39 +26,39 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	int* st = new int[num_vs];  // a stack for the dfs
 	memset(num, -1, num_vs*sizeof(num[0]));
 	memset(scc, -1, num_vs*sizeof(scc[0]));
-	int* cs1 = new int[num_vs];                                     // call stack variable for dfs
-	vector<int>::iterator* cs2 = new vector<int>::iterator[num_vs]; // call stack variable for dfs
+	int* cs1 = new int[num_vs]; // call stack variable for dfs
+	int* cs2 = new int[num_vs]; // call stack variable for dfs
 	// run iterative Tarjan's algorithm
 	for (int root = 0; root < num_vs; ++root) {
 		if (num[root] != -1)
 			continue;
 		int csz = 1;
 		cs1[0] = root;
-		cs2[0] = al->al[root].begin();
+		cs2[0] = al->tails[root];
 		// dfs
 		while (csz) {
 			int p = cs1[csz - 1]; // node we're dfs-ing on
-			vector<int>::iterator& it = cs2[csz - 1]; // iteration of the for loop
-			if (it == al->al[p].begin()) {
+			int& it = cs2[csz - 1]; // iteration of the for loop
+			if (it == al->tails[p]) {
 				low[p] = num[p] = mn++;
 				st[sz++] = p;
 			} else {
-				--it;
-				low[p] = min(low[p], low[*it]);
-				++it;
+				low[p] = min(low[p], low[al->heads[it - 1]]);
 			}
 			bool done = false;
-			for (; it != al->al[p].end(); ++it) {
-				if (scc[*it] == -1) {
-					if (num[*it] == -1) {
-						// dfs(*it, p);
-						cs1[csz] = *it;
-						cs2[csz++] = al->al[*it].begin();
+			int end_it = (p + 1 != num_vs) ? al->tails[p + 1] : al->num_es;
+			for (; it < end_it; ++it) {
+				int h = al->heads[it];
+				if (scc[h] == -1) {
+					if (num[h] == -1) {
+						// dfs(h, p);
+						cs1[csz] = h;
+						cs2[csz++] = al->tails[h];
 						++it;
 						done = true;
 						break;
 					}
-					low[p] = min(low[p], low[*it]);
+					low[p] = min(low[p], low[h]);
 				}
 			}
 			if (done)
@@ -85,18 +84,21 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
-		for (vector<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
-			if (tails_i == encoding[*curr]) {
-				ii[tails_i] += 1;
-				--num_es;
+		int decoded = decoding[tails_i];
+		int start_curr = al->tails[decoded];
+		int end_curr = (decoded + 1 != num_vs) ? al->tails[decoded + 1] : al->num_es;
+		for (int curr = start_curr; curr < end_curr; ++curr) {
+			int h = al->heads[curr];
+			if (tails_i == encoding[h]) {
+				++ii[tails_i];
 			} else {
-				heads[heads_i++] = encoding[*curr];
-				if (scc[*curr] == scc[decoding[tails_i]])
+				heads[heads_i++] = encoding[h];
+				if (scc[h] == scc[decoded])
 					++num_es_inside;
 				else
 					++num_es_outside;
 			}
-			++inv_num_outlinks[encoding[*curr]];
+			++inv_num_outlinks[encoding[h]];
 		}
 	}
 	divisions[0] = 0;

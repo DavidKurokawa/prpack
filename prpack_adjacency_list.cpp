@@ -1,5 +1,6 @@
 #include "prpack_adjacency_list.h"
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 using namespace prpack;
@@ -18,15 +19,15 @@ prpack_adjacency_list::prpack_adjacency_list(const string& filename) {
 	FILE* f = fopen(filename.c_str(), "r");
 	// read in header
 	float blah;
-	assert(fscanf(f, "%d%f%d", &num_vs, &blah, &num_es) == 3);
+	assert(fscanf(f, "%d %f %d", &num_vs, &blah, &num_es) == 3);
 	// fill in heads and tails
-	num_es = 0;
+	num_self_es = 0;
 	int* hs = new int[num_es];
 	int* ts = new int[num_es];
 	tails = new int[num_vs];
 	memset(tails, 0, num_vs*sizeof(tails[0]));
 	for (int i = 0; i < num_es; ++i) {
-		assert(fscanf(f, "%d%d%d", &hs[i], &ts[i], &blah) == 3);
+		assert(fscanf(f, "%d %d %f", &hs[i], &ts[i], &blah) == 3);
 		++tails[ts[i]];
 		if (hs[i] == ts[i])
 			++num_self_es;
@@ -39,7 +40,7 @@ prpack_adjacency_list::prpack_adjacency_list(const string& filename) {
 	heads = new int[num_es];
 	int* osets = new int[num_vs];
 	memset(osets, 0, num_vs*sizeof(osets[0]));
-	for (int i = 0; i < num_nonself_es; ++i)
+	for (int i = 0; i < num_es; ++i)
 		heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
 	// clean up
 	free(hs);
