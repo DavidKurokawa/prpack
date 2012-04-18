@@ -1,7 +1,7 @@
 #include "prpack_adjacency_list.h"
 #include <cassert>
+#include <cstring>
 #include <fstream>
-#include <vector>
 using namespace prpack;
 using namespace std;
 
@@ -19,13 +19,32 @@ prpack_adjacency_list::prpack_adjacency_list(const string& filename) {
 	// read in header
 	float blah;
 	assert(fscanf(f, "%d%f%d", &num_vs, &blah, &num_es) == 3);
-	// read in all the edges
-	int h, t;
-	al = new vector<int>[num_vs];
+	// fill in heads and tails
+	num_es = 0;
+	int* hs = new int[num_es];
+	int* ts = new int[num_es];
+	tails = new int[num_vs];
+	memset(tails, 0, num_vs*sizeof(tails[0]));
 	for (int i = 0; i < num_es; ++i) {
-		assert(fscanf(f, "%d%d%f", &h, &t, &blah) == 3);
-		al[t].push_back(h);
+		assert(fscanf(f, "%d%d%d", &hs[i], &ts[i], &blah) == 3);
+		++tails[ts[i]];
+		if (hs[i] == ts[i])
+			++num_self_es;
 	}
+	for (int i = 0, sum = 0; i < num_vs; ++i) {
+		int temp = sum;
+		sum += tails[i];
+		tails[i] = temp;
+	}
+	heads = new int[num_es];
+	int* osets = new int[num_vs];
+	memset(osets, 0, num_vs*sizeof(osets[0]));
+	for (int i = 0; i < num_nonself_es; ++i)
+		heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
+	// clean up
+	free(hs);
+	free(ts);
+	free(osets);
 	fclose(f);
 }
 

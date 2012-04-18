@@ -3,7 +3,6 @@
 #include "prpack_csr.h"
 #include "prpack_edge_list.h"
 #include <string>
-#include <vector>
 
 namespace prpack {
 
@@ -12,7 +11,9 @@ namespace prpack {
 			// instance variables
 			int num_vs;
 			int num_es;
-			std::vector<int>* al;
+			int num_self_es;
+			int* heads;
+			int* tails;
 			// constructors
 			prpack_adjacency_list(prpack_csr* g);
 			prpack_adjacency_list(prpack_edge_list* g);

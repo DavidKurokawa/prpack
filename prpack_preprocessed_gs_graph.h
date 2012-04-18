@@ -7,8 +7,6 @@ namespace prpack {
 
 	// Pre-processed graph class
 	class prpack_preprocessed_gs_graph : public prpack_preprocessed_graph {
-		private:
-			void convert(prpack_adjacency_list* al, int*& x, int*& y);
 		public:
 			// constructor
 			prpack_preprocessed_gs_graph(prpack_adjacency_list* al);
