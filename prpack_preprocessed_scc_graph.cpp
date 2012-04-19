@@ -5,10 +5,10 @@
 using namespace prpack;
 using namespace std;
 
-prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_list* al) {
+prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* bg) {
 	// initialize instance variables
-	num_vs = al->num_vs;
-	num_es = al->num_es - al->num_self_es;
+	num_vs = bg->num_vs;
+	num_es = bg->num_es - bg->num_self_es;
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
 	ii = new double[num_vs];
@@ -34,26 +34,26 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 			continue;
 		int csz = 1;
 		cs1[0] = root;
-		cs2[0] = al->tails[root];
+		cs2[0] = bg->tails[root];
 		// dfs
 		while (csz) {
 			int p = cs1[csz - 1]; // node we're dfs-ing on
 			int& it = cs2[csz - 1]; // iteration of the for loop
-			if (it == al->tails[p]) {
+			if (it == bg->tails[p]) {
 				low[p] = num[p] = mn++;
 				st[sz++] = p;
 			} else {
-				low[p] = min(low[p], low[al->heads[it - 1]]);
+				low[p] = min(low[p], low[bg->heads[it - 1]]);
 			}
 			bool done = false;
-			int end_it = (p + 1 != num_vs) ? al->tails[p + 1] : al->num_es;
+			int end_it = (p + 1 != num_vs) ? bg->tails[p + 1] : bg->num_es;
 			for (; it < end_it; ++it) {
-				int h = al->heads[it];
+				int h = bg->heads[it];
 				if (scc[h] == -1) {
 					if (num[h] == -1) {
 						// dfs(h, p);
 						cs1[csz] = h;
-						cs2[csz++] = al->tails[h];
+						cs2[csz++] = bg->tails[h];
 						++it;
 						done = true;
 						break;
@@ -85,10 +85,10 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_adjacency_li
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
 		int decoded = decoding[tails_i];
-		int start_curr = al->tails[decoded];
-		int end_curr = (decoded + 1 != num_vs) ? al->tails[decoded + 1] : al->num_es;
+		int start_curr = bg->tails[decoded];
+		int end_curr = (decoded + 1 != num_vs) ? bg->tails[decoded + 1] : bg->num_es;
 		for (int curr = start_curr; curr < end_curr; ++curr) {
-			int h = al->heads[curr];
+			int h = bg->heads[curr];
 			if (tails_i == encoding[h]) {
 				++ii[tails_i];
 			} else {

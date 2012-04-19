@@ -1,7 +1,7 @@
 #ifndef PRPACK_PREPROCESSED_SCC_GRAPH
 #define PRPACK_PREPROCESSED_SCC_GRAPH
 #include "prpack_preprocessed_graph.h"
-#include "prpack_adjacency_list.h"
+#include "prpack_base_graph.h"
 
 namespace prpack {
 
@@ -20,7 +20,7 @@ namespace prpack {
 			int* encoding;
 			int* decoding;
 			// constructor
-			prpack_preprocessed_scc_graph(prpack_adjacency_list* al);
+			prpack_preprocessed_scc_graph(prpack_base_graph* bg);
 	};
 
 };

@@ -14,22 +14,22 @@ void prpack_solver::initialize() {
 
 prpack_solver::prpack_solver(prpack_csr* g) {
 	initialize();
-	al = new prpack_adjacency_list(g);
+	bg = new prpack_base_graph(g);
 }
 
 prpack_solver::prpack_solver(prpack_edge_list* g) {
 	initialize();
-	al = new prpack_adjacency_list(g);
+	bg = new prpack_base_graph(g);
 }
 
-prpack_solver::prpack_solver(prpack_adjacency_list* g) {
+prpack_solver::prpack_solver(prpack_base_graph* g) {
 	initialize();
-	al = g;
+	bg = g;
 }
 
 prpack_solver::prpack_solver(const string& filename, const string& format) {
 	initialize();
-	al = new prpack_adjacency_list(filename, format);
+	bg = new prpack_base_graph(filename, format);
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
@@ -42,7 +42,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	prpack_result* ret;
 	if (method == "gs") {
 		if (gsg == NULL)
-			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
+			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
 		TIME(compute_time, ret = solve_via_gs(
 				alpha,
 				tol,
@@ -57,7 +57,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 		ret->method = "gs";
 	} else if (method == "sgs" || (method == "" && u == v)) {
 		if (sg == NULL)
-			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
+			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
 		TIME(compute_time, ret = solve_via_schur_gs(
 				alpha,
 				tol,
@@ -74,7 +74,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 		ret->method = "sgs";
 	} else if (method == "sgs_uv" || (method == "" && u != v)) {
 		if (sg == NULL)
-			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
+			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
 		TIME(compute_time, ret = solve_via_schur_gs_uv(
 				alpha,
 				tol,
@@ -92,7 +92,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 		ret->method = "sgs_uv";
 	} else if (method == "sccgs" || (method == "" && u == v)) {
 		if (sccg == NULL)
-			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
+			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
 		TIME(compute_time, ret = solve_via_scc_gs(
 				alpha,
 				tol,
@@ -113,7 +113,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 		ret->method = "sccgs";
 	} else {
 		if (sccg == NULL)
-			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
+			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
 		TIME(compute_time, ret = solve_via_scc_gs_uv(
 				alpha,
 				tol,
@@ -136,8 +136,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	}
 	ret->preprocess_time = preprocess_time;
 	ret->compute_time = compute_time;
-	ret->num_vs = al->num_vs;
-	ret->num_es = al->num_es;
+	ret->num_vs = bg->num_vs;
+	ret->num_es = bg->num_es;
 	return ret;
 }
 
