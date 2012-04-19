@@ -15,6 +15,7 @@ namespace prpack {
 	class prpack_solver {
 		private:
 			// instance variables
+			double read_time;
 			prpack_base_graph* bg;
 			prpack_preprocessed_gs_graph* gsg;
 			prpack_preprocessed_schur_graph* sg;

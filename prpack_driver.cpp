@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
 	*out << "number of edges = " << res->num_es << endl;
 	*out << "---------------------------" << endl;
 	*out << "method = " << res->method << endl;
+	*out << "read time = " << res->read_time << "s" << endl;
 	*out << "preprocess time = " << res->preprocess_time << "s" << endl;
 	*out << "compute time = " << res->compute_time << "s" << endl;
 	*out << "number of edges touched = " << res->num_es_touched << endl;

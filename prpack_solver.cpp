@@ -14,22 +14,22 @@ void prpack_solver::initialize() {
 
 prpack_solver::prpack_solver(prpack_csr* g) {
 	initialize();
-	bg = new prpack_base_graph(g);
+	TIME(read_time, bg = new prpack_base_graph(g));
 }
 
 prpack_solver::prpack_solver(prpack_edge_list* g) {
 	initialize();
-	bg = new prpack_base_graph(g);
+	TIME(read_time, bg = new prpack_base_graph(g));
 }
 
 prpack_solver::prpack_solver(prpack_base_graph* g) {
 	initialize();
-	bg = g;
+	TIME(read_time, bg = g);
 }
 
 prpack_solver::prpack_solver(const string& filename, const string& format) {
 	initialize();
-	bg = new prpack_base_graph(filename, format);
+	TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
@@ -134,6 +134,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sccg->decoding));
 		ret->method = "sccgs_uv";
 	}
+	ret->read_time = read_time;
 	ret->preprocess_time = preprocess_time;
 	ret->compute_time = compute_time;
 	ret->num_vs = bg->num_vs;
