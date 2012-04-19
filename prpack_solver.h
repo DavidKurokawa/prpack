@@ -109,7 +109,7 @@ namespace prpack {
 			prpack_solver(prpack_csr* g);
 			prpack_solver(prpack_edge_list* g);
 			prpack_solver(prpack_adjacency_list* g);
-			prpack_solver(const std::string& filename);
+			prpack_solver(const std::string& filename, const std::string& format);
 			// methods
 			prpack_result* solve(double alpha, double tol, const std::string& method);
 			prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);

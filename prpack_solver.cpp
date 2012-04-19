@@ -27,9 +27,9 @@ prpack_solver::prpack_solver(prpack_adjacency_list* g) {
 	al = g;
 }
 
-prpack_solver::prpack_solver(const string& filename) {
+prpack_solver::prpack_solver(const string& filename, const string& format) {
 	initialize();
-	al = new prpack_adjacency_list(filename);
+	al = new prpack_adjacency_list(filename, format);
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {

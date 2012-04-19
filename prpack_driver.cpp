@@ -16,7 +16,7 @@ class input {
 	public:
 		// instance variables
 		string graph;
-		string format;	// TODO: not handled currently
+		string format;
 		double alpha;
 		double tol;
 		string u;
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	// solve
-	prpack_solver solver(in.graph);
+	prpack_solver solver(in.graph, in.format);
 	double* u = read_vector(in.u);
 	double* v = (in.u == in.v) ? u : read_vector(in.v);
 	prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method);
