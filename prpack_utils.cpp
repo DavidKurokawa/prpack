@@ -21,3 +21,11 @@ void prpack_utils::validate(bool condition, const string& msg) {
 	}
 }
 
+// Permute a vector.
+double* prpack_utils::permute(int length, double* a, int* coding) {
+	double* ret = new double[length];
+	for (int i = 0; i < length; ++i)
+		ret[coding[i]] = a[i];
+	return ret;
+}
+

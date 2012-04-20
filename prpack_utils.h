@@ -22,6 +22,7 @@ namespace prpack {
 		public:
 			static double get_time();
 			static void validate(bool condition, const std::string& msg);
+			static double* permute(int length, double* a, int* coding);
 	};
 
 };

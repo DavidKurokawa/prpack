@@ -8,7 +8,8 @@ namespace prpack {
 	class prpack_preprocessed_schur_graph : public prpack_preprocessed_graph {
 		public:
 			// instance variables
-			int num_dangling_vs;
+			int num_no_in_vs;
+			int num_no_out_vs;
 			int* encoding;
 			int* decoding;
 			// constructor

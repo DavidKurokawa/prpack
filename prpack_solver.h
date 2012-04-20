@@ -37,7 +37,8 @@ namespace prpack {
 					double alpha,
 					double tol,
 					int num_vs,
-					int num_dangling_vs,
+					int num_no_in_vs,
+					int num_no_out_vs,
 					int num_es,
 					int* heads,
 					int* tails,
@@ -51,7 +52,8 @@ namespace prpack {
 					double alpha,
 					double tol,
 					int num_vs,
-					int num_dangling_vs,
+					int num_no_in_vs,
+					int num_no_out_vs,
 					int num_es,
 					int* heads,
 					int* tails,
@@ -97,7 +99,6 @@ namespace prpack {
 					int* divisions,
 					int* encoding,
 					int* decoding);
-			static double* permute(int length, double* a, int* coding);
 			static prpack_result* combine_uv(
 					int num_vs,
 					double* inv_num_outlinks,
