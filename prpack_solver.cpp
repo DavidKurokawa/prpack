@@ -238,7 +238,9 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	double err, c;
 	do {
 		// iterate through vertices
-		#pragma omp parallel for schedule(dynamic, 64)
+		int num_es_touched = 0;
+		err = c = 0;
+		#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
 		for (int i = num_no_in_vs; i < num_vs - num_no_out_vs; ++i) {
 			double new_val = 0;
 			const int start_j = tails[i];
@@ -246,25 +248,13 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 			for (int j = start_j; j < end_j; ++j)
 				// TODO: might want to use compensation summation for large: end_j - start_j
 				new_val += x[heads[j]];
+			COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 			new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 			x[i] = new_val*inv_num_outlinks[i];
-		}
-		// compute error
-		int num_es_touched = 0;
-		err = c = 0;
-		#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
-		for (int i = num_no_in_vs; i < num_vs - num_no_out_vs; ++i) {
-			double curr = 0;
-			const int start_j = tails[i];
-			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
-			for (int j = start_j; j < end_j; ++j)
-				// TODO: might want to use compensation summation for large: end_j - start_j
-				curr += x[heads[j]];
-			COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 			num_es_touched += end_j - start_j;
 		}
 		// update iteration index
-		ret->num_es_touched += 2*num_es_touched;
+		ret->num_es_touched += num_es_touched;
 	} while (err/(1 - alpha) >= tol*(num_vs - num_no_out_vs)/num_vs);
 	// solve for the dangling nodes
 	int num_es_touched = 0;
@@ -398,9 +388,10 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		double err, c;
 		do {
 			int num_es_touched = 0;
+			err = c = 0;
 			if (parallelize) {
 				// iterate through vertices
-				#pragma omp parallel for schedule(dynamic, 64)
+				#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
 				for (int i = start_comp; i < end_comp; ++i) {
 					double new_val = x_outside[i];
 					const int start_j = tails_inside[i];
@@ -408,20 +399,9 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
 						new_val += x[heads_inside[j]];
+					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 					x[i] = new_val*inv_num_outlinks[i];
-				}
-				// compute error
-				err = c = 0;
-				#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
-				for (int i = start_comp; i < end_comp; ++i) {
-					double curr = x_outside[i];
-					const int start_j = tails_inside[i];
-					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-					for (int j = start_j; j < end_j; ++j)
-						// TODO: might want to use compensation summation for large: end_j - start_j
-						curr += x[heads_inside[j]];
-					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					num_es_touched += end_j - start_j;
 				}
 			} else {
@@ -433,24 +413,14 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
 						new_val += x[heads_inside[j]];
+					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 					x[i] = new_val*inv_num_outlinks[i];
-				}
-				// compute error
-				err = c = 0;
-				for (int i = start_comp; i < end_comp; ++i) {
-					double curr = x_outside[i];
-					const int start_j = tails_inside[i];
-					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-					for (int j = start_j; j < end_j; ++j)
-						// TODO: might want to use compensation summation for large: end_j - start_j
-						curr += x[heads_inside[j]];
-					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					num_es_touched += end_j - start_j;
 				}
 			}
 			// update iteration index
-			ret->num_es_touched += 2*num_es_touched;
+			ret->num_es_touched += num_es_touched;
 		} while (err/(1 - alpha) >= tol*(end_comp - start_comp)/num_vs);
 	}
 	// undo inv_num_outlinks transformation
