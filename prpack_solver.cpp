@@ -169,19 +169,14 @@ prpack_result* prpack_solver::solve_via_gs(
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
-		x[i] = v[v_exists*i]*inv_num_outlinks[i];
+		x[i] = 0;
 	// initialize delta
 	double delta = 0;
-	for (int i = 0; i < num_vs; ++i)
-		if (inv_num_outlinks[i] < 0)
-			delta += x[i]/inv_num_outlinks[i];
-	delta *= alpha;
 	// run Gauss-Seidel
 	ret->num_es_touched = 0;
-	double err, old_val, new_val, c = 0;
+	double err = 1, old_val, new_val, c = 0;
 	do {
 		// iterate through vertices
-		err = 0;
 		for (int i = 0; i < num_vs; ++i) {
 			old_val = x[i]/inv_num_outlinks[i];
 			new_val = 0;
@@ -199,7 +194,7 @@ prpack_result* prpack_solver::solve_via_gs(
 				new_val += delta*u[u_exists*i];
 				new_val /= 1 - alpha*ii[i];
 			}
-			COMPENSATED_SUM(err, fabs(new_val - old_val), c);
+			COMPENSATED_SUM(err, old_val - new_val, c);
 			x[i] = new_val*inv_num_outlinks[i];
 		}
 		// update iteration index
@@ -237,7 +232,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs - num_no_out_vs; ++i)
-		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+		x[i] = uv[uv_exists*i]*inv_num_outlinks[i]/(1 - alpha*ii[i]);
 	// run Gauss-Seidel for the top left part of (I - alpha*P)*x = uv
 	ret->num_es_touched = 0;
 	double err, c;
@@ -270,7 +265,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 		}
 		// update iteration index
 		ret->num_es_touched += 2*num_es_touched;
-	} while (err >= tol*(num_vs - num_no_out_vs)/num_vs);
+	} while (err/(1 - alpha) >= tol*(num_vs - num_no_out_vs)/num_vs);
 	// solve for the dangling nodes
 	int num_es_touched = 0;
 	#pragma omp parallel for reduction(+:num_es_touched) schedule(dynamic, 64)
@@ -379,10 +374,10 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	double uv_const = 1.0/num_vs;
 	int uv_exists = (uv) ? 1 : 0;
 	uv = (uv) ? prpack_utils::permute(num_vs, uv, encoding) : &uv_const;
-	// initialize the eigenvector (and use personalization vector)
+	// initialize the eigenvector
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
-		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+		x[i] = uv[uv_exists*i]*inv_num_outlinks[i]/(1 - alpha*ii[i]);
 	// create x_outside
 	double* x_outside = new double[num_vs];
 	// run Gauss-Seidel for (I - alpha*P)*x = uv
@@ -456,7 +451,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 			}
 			// update iteration index
 			ret->num_es_touched += 2*num_es_touched;
-		} while (err >= tol*(end_comp - start_comp)/num_vs);
+		} while (err/(1 - alpha) >= tol*(end_comp - start_comp)/num_vs);
 	}
 	// undo inv_num_outlinks transformation
 	for (int i = 0; i < num_vs; ++i)
