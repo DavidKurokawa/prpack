@@ -8,6 +8,9 @@ namespace prpack {
 	// Pre-processed graph class
 	class prpack_preprocessed_gs_graph : public prpack_preprocessed_graph {
 		public:
+			// instance variables
+			int* heads;
+			int* tails;
 			// constructor
 			prpack_preprocessed_gs_graph(prpack_base_graph* bg);
 	};

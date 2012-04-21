@@ -9,11 +9,6 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* 
 	// initialize instance variables
 	num_vs = bg->num_vs;
 	num_es = bg->num_es - bg->num_self_es;
-	inv_num_outlinks = new double[num_vs];
-	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
-	ii = new double[num_vs];
-	tails = new int[num_vs];
-	heads = new int[num_es];
 	// initialize Tarjan's algorithm variables
 	num_comps = 0;
 	int mn = 0;                 // the number of vertices seen so far
@@ -75,68 +70,57 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* 
 			--csz;
 		}
 	}
-	// clean up variables
-	num_es_inside = num_es_outside = 0;
+	// set up other instance variables
 	divisions = new int[num_comps];
-	encoding = num; // given original i, return new i
-	for (int i = 0; i < num_vs; ++i)
-		encoding[decoding[i]] = i;
-	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
-		ii[tails_i] = 0;
-		tails[tails_i] = heads_i;
-		int decoded = decoding[tails_i];
-		int start_curr = bg->tails[decoded];
-		int end_curr = (decoded + 1 != num_vs) ? bg->tails[decoded + 1] : bg->num_es;
-		for (int curr = start_curr; curr < end_curr; ++curr) {
-			int h = bg->heads[curr];
-			if (tails_i == encoding[h]) {
-				++ii[tails_i];
-			} else {
-				heads[heads_i++] = encoding[h];
-				if (scc[h] == scc[decoded])
-					++num_es_inside;
-				else
-					++num_es_outside;
-			}
-			++inv_num_outlinks[encoding[h]];
-		}
-	}
 	divisions[0] = 0;
 	for (int i = 1; i < num_comps; ++i)
 		divisions[i] = cs1[num_vs - 1 - i];
+	encoding = num;
 	for (int i = 0; i < num_vs; ++i)
-		inv_num_outlinks[i] = (inv_num_outlinks[i] == 0) ? -1 : 1/inv_num_outlinks[i];
-	// free memory
-	free(cs1);
-	free(cs2);
-	free(scc);
-	free(st);
-	free(low);
-	// set up ii
-	for (int i = 0; i < num_vs; ++i)
-		if (ii[i] > 0.5)
-			ii[i] *= inv_num_outlinks[i];
+		encoding[decoding[i]] = i;
 	// fill in inside and outside instance variables
-	tails_inside = new int[num_vs];
-	heads_inside = new int[num_es_inside];
-	tails_outside = new int[num_vs];
-	heads_outside = new int[num_es_outside];
+	ii = new double[num_vs];
+	inv_num_outlinks = new double[num_vs];
+	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
+	tails_inside = cs1;
+	heads_inside = new int[num_es];
+	tails_outside = cs2;
+	heads_outside = new int[num_es];
 	num_es_inside = num_es_outside = 0;
 	for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
 		const int start_i = divisions[comp_i];
 		const int end_i = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
 		for (int i = start_i; i < end_i; ++i) {
-			const int start_j = tails[i];
-			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+			ii[i] = 0;
+			const int decoded = decoding[i];
+			const int start_j = bg->tails[decoded];
+			const int end_j = (decoded + 1 != num_vs) ? bg->tails[decoded + 1] : bg->num_es;
 			tails_inside[i] = num_es_inside;
 			tails_outside[i] = num_es_outside;
 			for (int j = start_j; j < end_j; ++j) {
-				if (start_i <= heads[j] && heads[j] < end_i)
-					heads_inside[num_es_inside++] = heads[j];
-				else
-					heads_outside[num_es_outside++] = heads[j];
+				int h = encoding[bg->heads[j]];
+				if (h == i) {
+					++ii[i];
+				} else {
+					if (start_i <= h && h < end_i)
+						heads_inside[num_es_inside++] = h;
+					else
+						heads_outside[num_es_outside++] = h;
+				}
+				++inv_num_outlinks[h];
 			}
 		}
 	}
+	for (int i = 0; i < num_vs; ++i) {
+		inv_num_outlinks[i] = (inv_num_outlinks[i] == 0) ? -1 : 1/inv_num_outlinks[i];
+		ii[i] *= inv_num_outlinks[i];
+	}
+	// free memory
+	// do not free num <==> encoding
+	// do not free cs1 <==> tails_inside
+	// do not free cs2 <==> tails_outside
+	free(scc);
+	free(low);
+	free(st);
 }
 

@@ -10,6 +10,8 @@ namespace prpack {
 			// instance variables
 			int num_no_in_vs;
 			int num_no_out_vs;
+			int* heads;
+			int* tails;
 			int* encoding;
 			int* decoding;
 			// constructor
