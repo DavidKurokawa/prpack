@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -O3 -fopenmp -std=c++0x
+CXXFLAGS = -Wall -O3 -fopenmp 
 OBJS = prpack_utils.o \
     prpack_adjacency_list.o \
     prpack_preprocessed_gs_graph.o \
