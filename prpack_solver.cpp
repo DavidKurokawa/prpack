@@ -14,22 +14,22 @@ void prpack_solver::initialize() {
 
 prpack_solver::prpack_solver(prpack_csr* g) {
 	initialize();
-	al = new prpack_adjacency_list(g);
+	TIME(read_time, bg = new prpack_base_graph(g));
 }
 
 prpack_solver::prpack_solver(prpack_edge_list* g) {
 	initialize();
-	al = new prpack_adjacency_list(g);
+	TIME(read_time, bg = new prpack_base_graph(g));
 }
 
-prpack_solver::prpack_solver(prpack_adjacency_list* g) {
+prpack_solver::prpack_solver(prpack_base_graph* g) {
 	initialize();
-	al = g;
+	TIME(read_time, bg = g);
 }
 
-prpack_solver::prpack_solver(const string& filename) {
+prpack_solver::prpack_solver(const string& filename, const string& format) {
 	initialize();
-	al = new prpack_adjacency_list(filename);
+	TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
 
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
@@ -43,7 +43,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 	prpack_result* ret;
 	if (method == "gs") {
 		if (gsg == NULL)
-			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
+			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
 		TIME(compute_time, ret = solve_via_gs(
 				alpha,
 				tol,
@@ -58,7 +58,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 		ret->method = "gs";
 	} if (method == "gserr") {
 		if (gsg == NULL)
-			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(al));
+			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
 		TIME(compute_time, ret = solve_via_gs_err(
 				alpha,
 				tol,
@@ -73,12 +73,13 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 		ret->method = "gs";
 	} else if (method == "sgs" || (method == "" && u == v)) {
 		if (sg == NULL)
-			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
+			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
 		TIME(compute_time, ret = solve_via_schur_gs(
 				alpha,
 				tol,
 				sg->num_vs,
-				sg->num_dangling_vs,
+				sg->num_no_in_vs,
+				sg->num_no_out_vs,
 				sg->num_es,
 				sg->heads,
 				sg->tails,
@@ -90,12 +91,13 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 		ret->method = "sgs";
 	} else if (method == "sgs_uv" || (method == "" && u != v)) {
 		if (sg == NULL)
-			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(al));
+			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
 		TIME(compute_time, ret = solve_via_schur_gs_uv(
 				alpha,
 				tol,
 				sg->num_vs,
-				sg->num_dangling_vs,
+				sg->num_no_in_vs,
+				sg->num_no_out_vs,
 				sg->num_es,
 				sg->heads,
 				sg->tails,
@@ -108,7 +110,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 		ret->method = "sgs_uv";
 	} else if (method == "sccgs" || (method == "" && u == v)) {
 		if (sccg == NULL)
-			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
+			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
 		TIME(compute_time, ret = solve_via_scc_gs(
 				alpha,
 				tol,
@@ -129,7 +131,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 		ret->method = "sccgs";
 	} else {
 		if (sccg == NULL)
-			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(al));
+			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
 		TIME(compute_time, ret = solve_via_scc_gs_uv(
 				alpha,
 				tol,
@@ -150,10 +152,11 @@ prpack_result* prpack_solver::solve(double alpha, double tol,
 				sccg->decoding));
 		ret->method = "sccgs_uv";
 	}
+	ret->read_time = read_time;
 	ret->preprocess_time = preprocess_time;
 	ret->compute_time = compute_time;
-	ret->num_vs = al->num_vs;
-	ret->num_es = al->num_es;
+	ret->num_vs = bg->num_vs;
+	ret->num_es = bg->num_es;
 	return ret;
 }
 
@@ -182,19 +185,14 @@ prpack_result* prpack_solver::solve_via_gs(
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
-		x[i] = v[v_exists*i]*inv_num_outlinks[i];
+		x[i] = 0;
 	// initialize delta
 	double delta = 0;
-	for (int i = 0; i < num_vs; ++i)
-		if (inv_num_outlinks[i] < 0)
-			delta += x[i]/inv_num_outlinks[i];
-	delta *= alpha;
 	// run Gauss-Seidel
 	ret->num_es_touched = 0;
-	double err, old_val, new_val, c = 0;
+	double err = 1, old_val, new_val, c = 0;
 	do {
 		// iterate through vertices
-		err = 0;
 		for (int i = 0; i < num_vs; ++i) {
 			old_val = x[i]/inv_num_outlinks[i];
 			new_val = 0;
@@ -212,7 +210,7 @@ prpack_result* prpack_solver::solve_via_gs(
 				new_val += delta*u[u_exists*i];
 				new_val /= 1 - alpha*ii[i];
 			}
-			COMPENSATED_SUM(err, fabs(new_val - old_val), c);
+			COMPENSATED_SUM(err, old_val - new_val, c);
 			x[i] = new_val*inv_num_outlinks[i];
 		}
 		// update iteration index
@@ -304,7 +302,8 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 		double alpha,
 		double tol,
 		int num_vs,
-		int num_dangling_vs,
+		int num_no_in_vs,
+		int num_no_out_vs,
 		int num_es,
 		int* heads,
 		int* tails,
@@ -318,48 +317,38 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	// initialize uv values
 	double uv_const = 1.0/num_vs;
 	int uv_exists = (uv) ? 1 : 0;
-	uv = (uv) ? permute(num_vs, uv, encoding) : &uv_const;
+	uv = (uv) ? prpack_utils::permute(num_vs, uv, encoding) : &uv_const;
 	// initialize the eigenvector (and use personalization vector)
 	double* x = new double[num_vs];
-	for (int i = 0; i < num_vs - num_dangling_vs; ++i)
-		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+	for (int i = 0; i < num_vs - num_no_out_vs; ++i)
+		x[i] = uv[uv_exists*i]*inv_num_outlinks[i]/(1 - alpha*ii[i]);
 	// run Gauss-Seidel for the top left part of (I - alpha*P)*x = uv
 	ret->num_es_touched = 0;
 	double err, c;
 	do {
 		// iterate through vertices
-		#pragma omp parallel for schedule(dynamic, 64)
-		for (int i = 0; i < num_vs - num_dangling_vs; ++i) {
+		int num_es_touched = 0;
+		err = c = 0;
+		#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
+		for (int i = num_no_in_vs; i < num_vs - num_no_out_vs; ++i) {
 			double new_val = 0;
 			const int start_j = tails[i];
 			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
 			for (int j = start_j; j < end_j; ++j)
 				// TODO: might want to use compensation summation for large: end_j - start_j
 				new_val += x[heads[j]];
+			COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 			new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 			x[i] = new_val*inv_num_outlinks[i];
-		}
-		// compute error
-		int num_es_touched = 0;
-		err = c = 0;
-		#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
-		for (int i = 0; i < num_vs - num_dangling_vs; ++i) {
-			double curr = 0;
-			const int start_j = tails[i];
-			const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
-			for (int j = start_j; j < end_j; ++j)
-				// TODO: might want to use compensation summation for large: end_j - start_j
-				curr += x[heads[j]];
-			COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 			num_es_touched += end_j - start_j;
 		}
 		// update iteration index
-		ret->num_es_touched += 2*num_es_touched;
-	} while (err >= tol*(num_vs - num_dangling_vs)/num_vs);
+		ret->num_es_touched += num_es_touched;
+	} while (err/(1 - alpha) >= tol*(num_vs - num_no_out_vs)/num_vs);
 	// solve for the dangling nodes
 	int num_es_touched = 0;
 	#pragma omp parallel for reduction(+:num_es_touched) schedule(dynamic, 64)
-	for (int i = num_vs - num_dangling_vs; i < num_vs; ++i) {
+	for (int i = num_vs - num_no_out_vs; i < num_vs; ++i) {
 		x[i] = 0;
 		const int start_j = tails[i];
 		const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
@@ -370,7 +359,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	}
 	ret->num_es_touched += num_es_touched;
 	// undo inv_num_outlinks transformation
-	for (int i = 0; i < num_vs - num_dangling_vs; ++i)
+	for (int i = 0; i < num_vs - num_no_out_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
 	// normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
 	if (normalize) {
@@ -382,7 +371,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 			x[i] *= norm;
 	}
 	// return results
-	ret->x = permute(num_vs, x, decoding);
+	ret->x = prpack_utils::permute(num_vs, x, decoding);
 	free(x);
 	if (uv_exists)
 		free(uv);
@@ -393,7 +382,8 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
 		double alpha,
 		double tol,
 		int num_vs,
-		int num_dangling_vs,
+		int num_no_in_vs,
+		int num_no_out_vs,
 		int num_es,
 		int* heads,
 		int* tails,
@@ -408,7 +398,8 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
 			alpha,
 			tol,
 			num_vs,
-			num_dangling_vs,
+			num_no_in_vs,
+			num_no_out_vs,
 			num_es,
 			heads,
 			tails,
@@ -423,7 +414,8 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
 			alpha,
 			tol,
 			num_vs,
-			num_dangling_vs,
+			num_no_in_vs,
+			num_no_out_vs,
 			num_es,
 			heads,
 			tails,
@@ -460,11 +452,11 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	// initialize uv values
 	double uv_const = 1.0/num_vs;
 	int uv_exists = (uv) ? 1 : 0;
-	uv = (uv) ? permute(num_vs, uv, encoding) : &uv_const;
-	// initialize the eigenvector (and use personalization vector)
+	uv = (uv) ? prpack_utils::permute(num_vs, uv, encoding) : &uv_const;
+	// initialize the eigenvector
 	double* x = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
-		x[i] = uv[uv_exists*i]*inv_num_outlinks[i];
+		x[i] = uv[uv_exists*i]*inv_num_outlinks[i]/(1 - alpha*ii[i]);
 	// create x_outside
 	double* x_outside = new double[num_vs];
 	// run Gauss-Seidel for (I - alpha*P)*x = uv
@@ -485,9 +477,10 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 		double err, c;
 		do {
 			int num_es_touched = 0;
+			err = c = 0;
 			if (parallelize) {
 				// iterate through vertices
-				#pragma omp parallel for schedule(dynamic, 64)
+				#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
 				for (int i = start_comp; i < end_comp; ++i) {
 					double new_val = x_outside[i];
 					const int start_j = tails_inside[i];
@@ -495,20 +488,9 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
 						new_val += x[heads_inside[j]];
+					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 					x[i] = new_val*inv_num_outlinks[i];
-				}
-				// compute error
-				err = c = 0;
-				#pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
-				for (int i = start_comp; i < end_comp; ++i) {
-					double curr = x_outside[i];
-					const int start_j = tails_inside[i];
-					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-					for (int j = start_j; j < end_j; ++j)
-						// TODO: might want to use compensation summation for large: end_j - start_j
-						curr += x[heads_inside[j]];
-					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					num_es_touched += end_j - start_j;
 				}
 			} else {
@@ -520,25 +502,15 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 					for (int j = start_j; j < end_j; ++j)
 						// TODO: might want to use compensation summation for large: end_j - start_j
 						new_val += x[heads_inside[j]];
+					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
 					x[i] = new_val*inv_num_outlinks[i];
-				}
-				// compute error
-				err = c = 0;
-				for (int i = start_comp; i < end_comp; ++i) {
-					double curr = x_outside[i];
-					const int start_j = tails_inside[i];
-					const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-					for (int j = start_j; j < end_j; ++j)
-						// TODO: might want to use compensation summation for large: end_j - start_j
-						curr += x[heads_inside[j]];
-					COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*curr - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
 					num_es_touched += end_j - start_j;
 				}
 			}
 			// update iteration index
-			ret->num_es_touched += 2*num_es_touched;
-		} while (err >= tol*(end_comp - start_comp)/num_vs);
+			ret->num_es_touched += num_es_touched;
+		} while (err/(1 - alpha) >= tol*(end_comp - start_comp)/num_vs);
 	}
 	// undo inv_num_outlinks transformation
 	for (int i = 0; i < num_vs; ++i)
@@ -553,7 +525,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 			x[i] *= norm;
 	}
 	// return results
-	ret->x = permute(num_vs, x, decoding);
+	ret->x = prpack_utils::permute(num_vs, x, decoding);
 	free(x);
 	free(x_outside);
 	if (uv_exists)
@@ -623,14 +595,6 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
 
 // VARIOUS HELPER METHODS /////////////////////////////////////////////////////////////////////////
 
-// Permute a vector.
-double* prpack_solver::permute(int length, double* a, int* coding) {
-	double* ret = new double[length];
-	for (int i = 0; i < length; ++i)
-		ret[coding[i]] = a[i];
-	return ret;
-}
-
 // Combine u and v results.
 prpack_result* prpack_solver::combine_uv(
 		int num_vs,
@@ -659,3 +623,4 @@ prpack_result* prpack_solver::combine_uv(
 	delete ret_v;
 	return ret;
 }
+

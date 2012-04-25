@@ -20,7 +20,7 @@ class input {
 	public:
 		// instance variables
 		string graph;
-		string format;	// TODO: not handled currently
+		string format;
 		double alpha;
 		double tol;
 		string u;
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
     }	
 	
 	// solve
-	prpack_solver solver(in.graph);
+	prpack_solver solver(in.graph, in.format);
 	double* u = read_vector(in.u);
 	double* v = (in.u == in.v) ? u : read_vector(in.v);
 	prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method);
@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
 	*out << "number of edges = " << res->num_es << endl;
 	*out << "---------------------------" << endl;
 	*out << "method = " << res->method << endl;
+	*out << "read time = " << res->read_time << "s" << endl;
 	*out << "preprocess time = " << res->preprocess_time << "s" << endl;
 	*out << "compute time = " << res->compute_time << "s" << endl;
 	*out << "number of edges touched = " << res->num_es_touched << endl;

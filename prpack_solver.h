@@ -1,6 +1,6 @@
 #ifndef PRPACK_SOLVER
 #define PRPACK_SOLVER
-#include "prpack_adjacency_list.h"
+#include "prpack_base_graph.h"
 #include "prpack_preprocessed_gs_graph.h"
 #include "prpack_preprocessed_schur_graph.h"
 #include "prpack_preprocessed_scc_graph.h"
@@ -18,7 +18,8 @@ namespace prpack {
 	class prpack_solver {
 		private:
 			// instance variables
-			prpack_adjacency_list* al;
+			double read_time;
+			prpack_base_graph* bg;
 			prpack_preprocessed_gs_graph* gsg;
 			prpack_preprocessed_schur_graph* sg;
 			prpack_preprocessed_scc_graph* sccg;
@@ -50,7 +51,8 @@ namespace prpack {
 					double alpha,
 					double tol,
 					int num_vs,
-					int num_dangling_vs,
+					int num_no_in_vs,
+					int num_no_out_vs,
 					int num_es,
 					int* heads,
 					int* tails,
@@ -64,7 +66,8 @@ namespace prpack {
 					double alpha,
 					double tol,
 					int num_vs,
-					int num_dangling_vs,
+					int num_no_in_vs,
+					int num_no_out_vs,
 					int num_es,
 					int* heads,
 					int* tails,
@@ -110,7 +113,6 @@ namespace prpack {
 					int* divisions,
 					int* encoding,
 					int* decoding);
-			static double* permute(int length, double* a, int* coding);
 			static prpack_result* combine_uv(
 					int num_vs,
 					double* inv_num_outlinks,
@@ -122,8 +124,8 @@ namespace prpack {
 			// constructors
 			prpack_solver(prpack_csr* g);
 			prpack_solver(prpack_edge_list* g);
-			prpack_solver(prpack_adjacency_list* g);
-			prpack_solver(const std::string& filename);
+			prpack_solver(prpack_base_graph* g);
+			prpack_solver(const std::string& filename, const std::string& format);
 			// methods
 			prpack_result* solve(double alpha, double tol, const std::string& method);
 			prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);

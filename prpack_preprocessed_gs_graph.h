@@ -1,17 +1,18 @@
 #ifndef PRPACK_PREPROCESSED_GS_GRAPH
 #define PRPACK_PREPROCESSED_GS_GRAPH
 #include "prpack_preprocessed_graph.h"
-#include "prpack_adjacency_list.h"
+#include "prpack_base_graph.h"
 
 namespace prpack {
 
 	// Pre-processed graph class
 	class prpack_preprocessed_gs_graph : public prpack_preprocessed_graph {
-		private:
-			void convert(prpack_adjacency_list* al, int*& x, int*& y);
 		public:
+			// instance variables
+			int* heads;
+			int* tails;
 			// constructor
-			prpack_preprocessed_gs_graph(prpack_adjacency_list* al);
+			prpack_preprocessed_gs_graph(prpack_base_graph* bg);
 	};
 
 };

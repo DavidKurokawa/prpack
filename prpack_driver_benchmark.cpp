@@ -17,7 +17,7 @@
 #include <vector>
 #include <iostream>
 
-#include "prpack_adjacency_list.h"
+#include "prpack_base_graph.h"
 #include "prpack_solver.h"
 
 using namespace std;
@@ -165,7 +165,7 @@ void benchmark() {
     int nverts = 200000;
     std::vector<std::pair<int,int> > edges;
     generate_graph(nverts, 1.8, 10000, edges);
-    prpack::prpack_adjacency_list *g = new prpack::prpack_adjacency_list(
+    prpack::prpack_base_graph *g = new prpack::prpack_base_graph(
                                         nverts, edges.size(), &edges[0]);
     cout << "nverts = " << nverts << endl;
     cout << "nedges = " << edges.size() << endl;

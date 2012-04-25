@@ -1,41 +1,32 @@
 #include "prpack_preprocessed_gs_graph.h"
 #include <algorithm>
-#include <vector>
 using namespace prpack;
 using namespace std;
 
-prpack_preprocessed_gs_graph::prpack_preprocessed_gs_graph(prpack_adjacency_list* al) {
-	num_vs = al->num_vs;
-	num_es = al->num_es;
+prpack_preprocessed_gs_graph::prpack_preprocessed_gs_graph(prpack_base_graph* bg) {
+	num_vs = bg->num_vs;
+	num_es = bg->num_es - bg->num_self_es;
+	heads = new int[num_es];
+	tails = new int[num_vs];
+	ii = new double[num_vs];
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
-	for (int b = 0; b < num_vs; ++b)
-		for (vector<int>::iterator a = al->al[b].begin(); a != al->al[b].end(); ++a)
-			++inv_num_outlinks[*a];
-	ii = new double[num_vs];
-	convert(al, tails, heads);
-}
-
-// Convert the adjacency list to heads/tails format. This method will work regardless of the inlink/outlink orientation of the adjacency list
-void prpack_preprocessed_gs_graph::convert(prpack_adjacency_list* al, int*& x, int*& y) {
-	x = new int[num_vs];
-	y = new int[num_es];
-	for (int x_i = 0, y_i = 0; x_i < num_vs; ++x_i) {
-		ii[x_i] = 0;
-		x[x_i] = y_i;
-		for (vector<int>::iterator curr = al->al[x_i].begin(); curr != al->al[x_i].end(); ++curr) {
-			if (x_i == *curr) {
-				ii[x_i] += 1;
-				--num_es;
-			} else {
-				y[y_i++] = *curr;
-			}
+	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
+		tails[tails_i] = heads_i;
+		ii[tails_i] = 0;
+		int start_j = bg->tails[tails_i];
+		int end_j = (tails_i + 1 != num_vs) ? bg->tails[tails_i + 1]: bg->num_es;
+		for (int j = start_j; j < end_j; ++j) {
+			if (tails_i == bg->heads[j])
+				++ii[tails_i];
+			else
+				heads[heads_i++] = bg->heads[j];
+			++inv_num_outlinks[bg->heads[j]];
 		}
-		inv_num_outlinks[x_i] = (inv_num_outlinks[x_i] == 0) ? -1 : 1/inv_num_outlinks[x_i];
 	}
-	// invert ii
-	for (int i = 0; i < num_vs; ++i)
-		if (ii[i] > 0.5)
-			ii[i] *= inv_num_outlinks[i];
+	for (int i = 0; i < num_vs; ++i) {
+		inv_num_outlinks[i] = (inv_num_outlinks[i] == 0) ? -1 : 1/inv_num_outlinks[i];
+		ii[i] *= inv_num_outlinks[i];
+	}
 }
 

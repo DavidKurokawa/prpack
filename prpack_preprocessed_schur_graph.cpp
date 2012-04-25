@@ -1,54 +1,56 @@
 #include "prpack_preprocessed_schur_graph.h"
 #include <algorithm>
 #include <cstring>
-#include <vector>
 using namespace prpack;
 using namespace std;
 
-prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_adjacency_list* al) {
+prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_base_graph* bg) {
 	// initialize instance variables
-	num_vs = al->num_vs;
-	num_es = al->num_es;
+	num_vs = bg->num_vs;
+	num_es = bg->num_es - bg->num_self_es;
 	inv_num_outlinks = new double[num_vs];
 	fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
-	// permute dangling nodes to end
+	for (int i = 0; i < bg->num_es; ++i)
+		++inv_num_outlinks[bg->heads[i]];
+	// permute no-inlink vertices to the beginning, and no-outlink vertices to the end
 	encoding = new int[num_vs];
-	memset(encoding, -1, num_vs*sizeof(encoding[0]));
 	decoding = new int[num_vs];
-	int seen = 0;
-	for (int b = 0; b < num_vs; ++b) {
-		for (vector<int>::iterator a = al->al[b].begin(); a != al->al[b].end(); ++a) {
-			if (encoding[*a] == -1)
-				encoding[*a] = seen++;
-			++inv_num_outlinks[encoding[*a]];
+	num_no_in_vs = num_no_out_vs = 0;
+	for (int i = 0; i < num_vs; ++i) {
+		if (bg->tails[i] == ((i + 1 != num_vs) ? bg->tails[i + 1] : bg->num_es)) {
+			decoding[encoding[i] = num_no_in_vs] = i;
+			++num_no_in_vs;
+		} else if (inv_num_outlinks[i] == 0) {
+			decoding[encoding[i] = num_vs - 1 - num_no_out_vs] = i;
+			++num_no_out_vs;
 		}
 	}
-	num_dangling_vs = num_vs - seen;
+	// permute everything else
+	for (int i = 0, p = num_no_in_vs; i < num_vs; ++i)
+		if (bg->tails[i] < ((i + 1 != num_vs) ? bg->tails[i + 1] : bg->num_es) && inv_num_outlinks[i] > 0)
+			decoding[encoding[i] = p++] = i;
+	// permute inv_num_outlinks
+	ii = inv_num_outlinks;
+	inv_num_outlinks = new double[num_vs];
 	for (int i = 0; i < num_vs; ++i)
-		if (encoding[i] == -1)
-			encoding[i] = seen++;
-	for (int i = 0; i < num_vs; ++i)
-		decoding[encoding[i]] = i;
-	// convert al to head/tail format
-	ii = new double[num_vs];
+		inv_num_outlinks[encoding[i]] = (ii[i] == 0) ? -1 : 1/ii[i];
+	// convert bg to head/tail format
 	tails = new int[num_vs];
 	heads = new int[num_es];
 	for (int tails_i = 0, heads_i = 0; tails_i < num_vs; ++tails_i) {
 		ii[tails_i] = 0;
 		tails[tails_i] = heads_i;
-		for (vector<int>::iterator curr = al->al[decoding[tails_i]].begin(); curr != al->al[decoding[tails_i]].end(); ++curr) {
-			if (decoding[tails_i] == *curr) {
-				ii[tails_i] += 1;
-				--num_es;
-			} else {
-				heads[heads_i++] = encoding[*curr];
-			}
+		int decoded = decoding[tails_i];
+		int start_i = bg->tails[decoded];
+		int end_i = (decoded + 1 != num_vs) ? bg->tails[decoded + 1] : bg->num_es;
+		for (int i = start_i; i < end_i; ++i) {
+			if (decoded == bg->heads[i])
+				++ii[tails_i];
+			else
+				heads[heads_i++] = encoding[bg->heads[i]];
 		}
-		inv_num_outlinks[tails_i] = (inv_num_outlinks[tails_i] == 0) ? -1 : 1/inv_num_outlinks[tails_i];
+		if (ii[tails_i] > 0)
+			ii[tails_i] *= inv_num_outlinks[tails_i];
 	}
-	// invert ii
-	for (int i = 0; i < num_vs; ++i)
-		if (ii[i] > 0.5)
-			ii[i] *= inv_num_outlinks[i];
 }
 

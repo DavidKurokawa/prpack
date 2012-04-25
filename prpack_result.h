@@ -11,6 +11,7 @@ namespace prpack {
 			int num_vs;
 			int num_es;
 			double* x;
+			double read_time;
 			double preprocess_time;
 			double compute_time;
 			long long num_es_touched;
