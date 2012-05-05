@@ -41,6 +41,7 @@ int prpack_utils::matlab_array_to_int(mxArray* a) {
 
 // Convert an int array to a matlab array.
 mxArray* prpack_utils::int_array_to_matlab_array(int length, int* a) {
+    // TODO: find a way to have this not be necessary
 	mxArray* ret = mxCreateNumericMatrix(length, 1, mxINT32_CLASS, mxREAL);
 	int* ret_data = (int*) mxGetData(ret);
 	for (int i = 0; i < length; ++i)
@@ -50,7 +51,13 @@ mxArray* prpack_utils::int_array_to_matlab_array(int length, int* a) {
 
 // Convert a matlab array to an int array.
 int* prpack_utils::matlab_array_to_int_array(mxArray* a) {
-	return (int*) mxGetData(a);
+	// TODO: change this to: return (int*) mxGetData(a);
+    int length = mxGetNumberOfElements(a);
+    int* b = (int*) mxGetData(a);
+    int* ret = new int[length];
+    for (int i = 0; i < length; ++i)
+        ret[i] = b[i];
+    return ret;
 }
 
 // Convert a double to a matlab array.
@@ -65,6 +72,7 @@ double prpack_utils::matlab_array_to_double(mxArray* a) {
 
 // Convert a double array to a matlab array.
 mxArray* prpack_utils::double_array_to_matlab_array(int length, double* a) {
+    // TODO: find a way to have this not be necessary
 	mxArray* ret = mxCreateDoubleMatrix(length, 1, mxREAL);
 	double* ret_data = mxGetPr(ret);
 	for (int i = 0; i < length; ++i)
@@ -74,7 +82,13 @@ mxArray* prpack_utils::double_array_to_matlab_array(int length, double* a) {
 
 // Convert a matlab array to a double array.
 double* prpack_utils::matlab_array_to_double_array(mxArray* a) {
-	return (double*) mxGetData(a);
+	// TODO: change this to: return (double*) mxGetData(a);
+    int length = mxGetNumberOfElements(a);
+    double* b = (double*) mxGetData(a);
+    double* ret = new double[length];
+    for (int i = 0; i < length; ++i)
+        ret[i] = b[i];
+    return ret;
 }
 
 // Convert a long long to a matlab array.

@@ -33,6 +33,7 @@ prpack_solver::prpack_solver(const string& filename, const string& format) {
 }
 
 prpack_solver::prpack_solver(const mxArray* a) {
+    initialize();
 	// separate raw matlab arrays
 	mxArray* raw_read_time = mxGetField(a, 0, "read_time");
 	mxArray* raw_bg = mxGetField(a, 0, "bg");
@@ -52,7 +53,7 @@ prpack_solver::prpack_solver(const mxArray* a) {
 
 prpack_solver::~prpack_solver() {
 	delete bg;
-    delete gsg;
+	delete gsg;
 	delete sg;
 	delete sccg;
 }
@@ -78,8 +79,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 	double compute_time = 0;
 	prpack_result* ret;
 	if (method == "gs") {
-		if (gsg == NULL)
+		if (gsg == NULL) {
 			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
+        }
 		TIME(compute_time, ret = solve_via_gs(
 				alpha,
 				tol,
@@ -92,9 +94,10 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				u,
 				v));
 		ret->method = "gs";
-	} if (method == "gserr") {
-		if (gsg == NULL)
+	} else if (method == "gserr") {
+		if (gsg == NULL) {
 			TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
+        }
 		TIME(compute_time, ret = solve_via_gs_err(
 				alpha,
 				tol,
@@ -106,10 +109,11 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				gsg->inv_num_outlinks,
 				u,
 				v));
-		ret->method = "gs";
+		ret->method = "gserr";
 	} else if (method == "sgs" || (method == "" && u == v)) {
-		if (sg == NULL)
+		if (sg == NULL) {
 			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
+        }
 		TIME(compute_time, ret = solve_via_schur_gs(
 				alpha,
 				tol,
@@ -126,8 +130,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->decoding));
 		ret->method = "sgs";
 	} else if (method == "sgs_uv" || (method == "" && u != v)) {
-		if (sg == NULL)
+		if (sg == NULL) {
 			TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
+        }
 		TIME(compute_time, ret = solve_via_schur_gs_uv(
 				alpha,
 				tol,
@@ -145,8 +150,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sg->decoding));
 		ret->method = "sgs_uv";
 	} else if (method == "sccgs" || (method == "" && u == v)) {
-		if (sccg == NULL)
+		if (sccg == NULL) {
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
+        }
 		TIME(compute_time, ret = solve_via_scc_gs(
 				alpha,
 				tol,
@@ -166,8 +172,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 				sccg->decoding));
 		ret->method = "sccgs";
 	} else {
-		if (sccg == NULL)
+		if (sccg == NULL) {
 			TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
+        }
 		TIME(compute_time, ret = solve_via_scc_gs_uv(
 				alpha,
 				tol,

@@ -90,34 +90,18 @@ prpack_preprocessed_schur_graph::~prpack_preprocessed_schur_graph() {
 }
 
 mxArray* prpack_preprocessed_schur_graph::to_matlab_array() const {
-	const int num_fields = 5;
-	const char* field_names[num_fields] = {"num_vs", "num_es", "ii", "heads", "tails"};
-	mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-	mxSetField(ret, 0, "num_vs", prpack_utils::int_to_matlab_array(num_vs));
-	mxSetField(ret, 0, "num_es", prpack_utils::int_to_matlab_array(num_es));
-	mxSetField(ret, 0, "ii", prpack_utils::double_array_to_matlab_array(num_vs, ii));
-	//mxSetField(ret, 0, "inv_num_outlinks", prpack_utils::double_array_to_matlab_array(num_vs, inv_num_outlinks));
-	mxSetField(ret, 0, "heads", prpack_utils::int_array_to_matlab_array(num_es, heads));
-	mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_es, tails));
-	//mxSetField(ret, 0, "num_no_in_vs", prpack_utils::int_to_matlab_array(1));
-	//mxSetField(ret, 0, "num_no_out_vs", prpack_utils::int_to_matlab_array(num_no_out_vs));
-	//mxSetField(ret, 0, "encoding", prpack_utils::int_array_to_matlab_array(num_vs, encoding));
-
-
-	/*
-	   const int num_fields = 10;
-	   const char* field_names[num_fields] = {"num_vs", "num_es", "ii", "inv_num_outlinks", "heads", "tails", "num_no_in_vs", "num_no_out_vs", "encoding", "decoding"};
-	   mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);    
-	   mxSetField(ret, 0, "num_vs", prpack_utils::int_to_matlab_array(num_vs));
-	   mxSetField(ret, 0, "num_es", prpack_utils::int_to_matlab_array(num_es));
-	   mxSetField(ret, 0, "ii", prpack_utils::double_array_to_matlab_array(num_vs, ii));
-	   mxSetField(ret, 0, "inv_num_outlinks", prpack_utils::double_array_to_matlab_array(num_vs, inv_num_outlinks));
-	   mxSetField(ret, 0, "heads", prpack_utils::int_array_to_matlab_array(num_es, heads));
-	   mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_es, tails));
-	   mxSetField(ret, 0, "num_no_in_vs", prpack_utils::int_to_matlab_array(num_no_in_vs));
-	   mxSetField(ret, 0, "num_no_out_vs", prpack_utils::int_to_matlab_array(num_no_out_vs));
-	   mxSetField(ret, 0, "encoding", prpack_utils::int_array_to_matlab_array(num_vs, encoding));
-	   mxSetField(ret, 0, "decoding", prpack_utils::int_array_to_matlab_array(num_vs, decoding));
-	 */
+    const int num_fields = 10;
+    const char* field_names[num_fields] = {"num_vs", "num_es", "ii", "inv_num_outlinks", "heads", "tails", "num_no_in_vs", "num_no_out_vs", "encoding", "decoding"};
+    mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);    
+    mxSetField(ret, 0, "num_vs", prpack_utils::int_to_matlab_array(num_vs));
+    mxSetField(ret, 0, "num_es", prpack_utils::int_to_matlab_array(num_es));
+    mxSetField(ret, 0, "ii", prpack_utils::double_array_to_matlab_array(num_vs, ii));
+    mxSetField(ret, 0, "inv_num_outlinks", prpack_utils::double_array_to_matlab_array(num_vs, inv_num_outlinks));
+    mxSetField(ret, 0, "heads", prpack_utils::int_array_to_matlab_array(num_es, heads));
+    mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_es, tails));
+    mxSetField(ret, 0, "num_no_in_vs", prpack_utils::int_to_matlab_array(num_no_in_vs));
+    mxSetField(ret, 0, "num_no_out_vs", prpack_utils::int_to_matlab_array(num_no_out_vs));
+    mxSetField(ret, 0, "encoding", prpack_utils::int_array_to_matlab_array(num_vs, encoding));
+    mxSetField(ret, 0, "decoding", prpack_utils::int_array_to_matlab_array(num_vs, decoding));
 	return ret;
 }

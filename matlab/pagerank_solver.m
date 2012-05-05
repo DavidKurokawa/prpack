@@ -7,11 +7,11 @@ classdef pagerank_solver
     end
     
     methods
-        function ret = pagerank_solver(num_vs, heads, tails)
-            ret.solver = create_pagerank_solver(num_vs, heads, tails);
+        function obj = pagerank_solver(num_vs, heads, tails)
+            obj.solver = create_pagerank_solver(num_vs, heads, tails);
         end
         function ret = solve(obj, alpha, tol, u, v, method)
-            ret = use_pagerank_solver(obj.solver, alpha, tol, u, v, method);
+            [x, ret, obj.solver] = use_pagerank_solver(obj.solver, alpha, tol, u, v, method);
         end
     end
     

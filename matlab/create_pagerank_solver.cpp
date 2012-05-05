@@ -77,11 +77,13 @@ void mexFunction(
     plhs[0] = solver.to_matlab_array();
     ///////////////////////////////////////////////////////////////////////
     // print all variables out
+    /*
     mexPrintf("num_vs = %d\n", num_vs);
     mexPrintf("num_es = %d\n", num_es);
     mexPrintf("edges =\n");
     for (int i = 0; i < num_es; ++i)
         mexPrintf("%d, %d\n", heads[i], tails[i]);
+     */
     ///////////////////////////////////////////////////////////////////////
 }
 

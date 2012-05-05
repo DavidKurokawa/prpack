@@ -98,6 +98,7 @@ void mexFunction(
     delete res;
     ///////////////////////////////////////////////////////////////////////
     // print all variables out
+    /*
     mexPrintf("alpha = %f\n", alpha);
     mexPrintf("tol = %f\n", tol);
     mexPrintf("u =");
@@ -109,6 +110,7 @@ void mexFunction(
         mexPrintf(" %f", v[i]);
     mexPrintf("\n");
     mexPrintf("method = %s\n", method.c_str());
+     */
     ///////////////////////////////////////////////////////////////////////
 }
 
