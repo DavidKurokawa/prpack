@@ -2,6 +2,7 @@
 #define PRPACK_PREPROCESSED_GS_GRAPH
 #include "prpack_preprocessed_graph.h"
 #include "prpack_base_graph.h"
+#include "mex.h"
 
 namespace prpack {
 
@@ -11,8 +12,11 @@ namespace prpack {
 			// instance variables
 			int* heads;
 			int* tails;
-			// constructor
+			// constructors
 			prpack_preprocessed_gs_graph(prpack_base_graph* bg);
+			prpack_preprocessed_gs_graph(const mxArray* a);
+			// method
+			mxArray* to_matlab_array() const;
 	};
 
 };

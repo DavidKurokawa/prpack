@@ -1,4 +1,5 @@
 #include "prpack_preprocessed_scc_graph.h"
+#include "prpack_utils.h"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -124,3 +125,56 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* 
 	free(st);
 }
 
+prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(const mxArray* a) {
+    // separate raw matlab arrays
+    mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
+    mxArray* raw_num_es = mxGetField(a, 0, "num_es");
+    mxArray* raw_ii = mxGetField(a, 0, "ii");
+    mxArray* raw_inv_num_outlinks = mxGetField(a, 0, "inv_num_outlinks");
+    mxArray* raw_num_es_inside = mxGetField(a, 0, "num_es_inside");
+    mxArray* raw_heads_inside = mxGetField(a, 0, "heads_inside");
+    mxArray* raw_tails_inside = mxGetField(a, 0, "tails_inside");
+    mxArray* raw_num_es_outside = mxGetField(a, 0, "num_es_outside");
+    mxArray* raw_heads_outside = mxGetField(a, 0, "heads_outside");
+    mxArray* raw_tails_outside = mxGetField(a, 0, "tails_outside");
+    mxArray* raw_num_comps = mxGetField(a, 0, "num_comps");
+    mxArray* raw_divisions = mxGetField(a, 0, "divisions");
+    mxArray* raw_encoding = mxGetField(a, 0, "encoding");
+    mxArray* raw_decoding = mxGetField(a, 0, "decoding");
+    // initialize instance variables
+    num_vs = prpack_utils::matlab_array_to_int(raw_num_vs);
+    num_es = prpack_utils::matlab_array_to_int(raw_num_es);
+    ii = prpack_utils::matlab_array_to_double_array(raw_ii);
+    inv_num_outlinks = prpack_utils::matlab_array_to_double_array(raw_inv_num_outlinks);
+    num_es_inside = prpack_utils::matlab_array_to_int(raw_num_es_inside);
+    heads_inside = prpack_utils::matlab_array_to_int_array(raw_heads_inside);
+    tails_inside = prpack_utils::matlab_array_to_int_array(raw_tails_inside);
+    num_es_outside = prpack_utils::matlab_array_to_int(raw_num_es_outside);
+    heads_outside = prpack_utils::matlab_array_to_int_array(raw_heads_outside);
+    tails_outside = prpack_utils::matlab_array_to_int_array(raw_tails_outside);
+    num_comps = prpack_utils::matlab_array_to_int(raw_num_comps);
+    divisions = prpack_utils::matlab_array_to_int_array(raw_divisions);
+    encoding = prpack_utils::matlab_array_to_int_array(raw_encoding);
+    decoding = prpack_utils::matlab_array_to_int_array(raw_decoding);
+}
+
+mxArray* prpack_preprocessed_scc_graph::to_matlab_array() const {
+    const int num_fields = 14;
+    const char* field_names[num_fields] = {"num_vs", "num_es", "ii", "inv_num_outlinks", "num_es_inside", "heads_inside", "tails_inside", "num_es_outside", "heads_outside", "tails_outside", "num_comps", "divisions", "encoding", "decoding"};
+    mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
+    mxSetField(ret, 0, "num_vs", prpack_utils::int_to_matlab_array(num_vs));
+    mxSetField(ret, 0, "num_es", prpack_utils::int_to_matlab_array(num_es));
+    mxSetField(ret, 0, "ii", prpack_utils::double_array_to_matlab_array(num_vs, ii));
+    mxSetField(ret, 0, "inv_num_outlinks", prpack_utils::double_array_to_matlab_array(num_vs, inv_num_outlinks));
+    mxSetField(ret, 0, "num_es_inside", prpack_utils::int_to_matlab_array(num_es_inside));
+    mxSetField(ret, 0, "heads_inside", prpack_utils::int_array_to_matlab_array(num_es_inside, heads_inside));
+    mxSetField(ret, 0, "tails_inside", prpack_utils::int_array_to_matlab_array(num_es_inside, tails_inside));
+    mxSetField(ret, 0, "num_es_outside", prpack_utils::int_to_matlab_array(num_es_outside));
+    mxSetField(ret, 0, "heads_outside", prpack_utils::int_array_to_matlab_array(num_es_outside, heads_outside));
+    mxSetField(ret, 0, "tails_outside", prpack_utils::int_array_to_matlab_array(num_es_outside, tails_outside));
+    mxSetField(ret, 0, "num_comps", prpack_utils::int_to_matlab_array(num_comps));
+    mxSetField(ret, 0, "divisions", prpack_utils::int_array_to_matlab_array(num_comps, divisions));
+    mxSetField(ret, 0, "encoding", prpack_utils::int_array_to_matlab_array(num_vs, encoding));
+    mxSetField(ret, 0, "decoding", prpack_utils::int_array_to_matlab_array(num_vs, decoding));
+    return ret;
+}

@@ -2,6 +2,7 @@
 #define PRPACK_PREPROCESSED_SCHUR_GRAPH
 #include "prpack_preprocessed_graph.h"
 #include "prpack_base_graph.h"
+#include "mex.h"
 
 namespace prpack {
 
@@ -14,8 +15,13 @@ namespace prpack {
 			int* tails;
 			int* encoding;
 			int* decoding;
-			// constructor
+			// constructors
 			prpack_preprocessed_schur_graph(prpack_base_graph* bg);
+			prpack_preprocessed_schur_graph(const mxArray* a);
+			// destructor
+			prpack_preprocessed_schur_graph::~prpack_preprocessed_schur_graph();
+			// method
+			mxArray* to_matlab_array() const;
 	};
 
 };

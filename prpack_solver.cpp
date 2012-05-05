@@ -32,12 +32,51 @@ prpack_solver::prpack_solver(const string& filename, const string& format) {
 	TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
 
+prpack_solver::prpack_solver(const mxArray* a) {
+	// separate raw matlab arrays
+	mxArray* raw_read_time = mxGetField(a, 0, "read_time");
+	mxArray* raw_bg = mxGetField(a, 0, "bg");
+	mxArray* raw_gsg = mxGetField(a, 0, "gsg");
+	mxArray* raw_sg = mxGetField(a, 0, "sg");
+	mxArray* raw_sccg = mxGetField(a, 0, "sccg");
+	// initialize instance variables
+	read_time = prpack_utils::matlab_array_to_double(raw_read_time);
+	bg = new prpack_base_graph(raw_bg);
+	if (!mxIsEmpty(raw_gsg))
+		gsg = new prpack_preprocessed_gs_graph(raw_gsg);
+	if (!mxIsEmpty(raw_sg))
+		sg = new prpack_preprocessed_schur_graph(raw_sg);
+	if (!mxIsEmpty(raw_sccg))
+		sccg = new prpack_preprocessed_scc_graph(raw_sccg);
+}
+
+prpack_solver::~prpack_solver() {
+	delete bg;
+	if (gsg != NULL)
+		delete gsg;
+	if (sg != NULL)
+		delete sg;
+	if (sccg != NULL)
+		delete sccg;
+}
+
+mxArray* prpack_solver::to_matlab_array() {
+	const int num_fields = 5;
+	const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
+	mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
+	mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
+	mxSetField(ret, 0, "bg", bg->to_matlab_array());
+	mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
+	mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
+	mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
+	return ret;
+}
+
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
 	return solve(alpha, tol, NULL, NULL, method);
 }
 
-prpack_result* prpack_solver::solve(double alpha, double tol, 
-    double* u, double* v, const string& method) {
+prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v, const string& method) {
 	double preprocess_time = 0;
 	double compute_time = 0;
 	prpack_result* ret;
@@ -215,7 +254,7 @@ prpack_result* prpack_solver::solve_via_gs(
 		}
 		// update iteration index
 		ret->num_es_touched += num_es;
-	} while (err >= tol/(1-alpha));
+	} while (err >= tol);
 	// undo inv_num_outlinks transformation
 	for (int i = 0; i < num_vs; ++i)
 		x[i] /= inv_num_outlinks[i];
@@ -223,7 +262,6 @@ prpack_result* prpack_solver::solve_via_gs(
 	ret->x = x;
 	return ret;
 }
-
 
 // Implement a gauss-seidel-like process with a strict error bound
 // we return a solution with 1-norm error less than tol.

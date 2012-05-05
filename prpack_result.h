@@ -1,5 +1,6 @@
 #ifndef PRPACK_RESULT
 #define PRPACK_RESULT
+#include "mex.h"
 #include <string>
 
 namespace prpack {
@@ -17,6 +18,8 @@ namespace prpack {
 			long long num_es_touched;
 			std::string method;
 			int converged;
+			// method
+			mxArray* to_matlab_array() const;
 			// destructor
 			~prpack_result();
 	};
