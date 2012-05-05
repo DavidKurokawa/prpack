@@ -96,21 +96,4 @@ void mexFunction(
     plhs[1] = res->to_matlab_array();
     plhs[2] = solver.to_matlab_array();
     delete res;
-    ///////////////////////////////////////////////////////////////////////
-    // print all variables out
-    /*
-    mexPrintf("alpha = %f\n", alpha);
-    mexPrintf("tol = %f\n", tol);
-    mexPrintf("u =");
-    for (int i = 0; i < u_size; ++i)
-        mexPrintf(" %f", u[i]);
-    mexPrintf("\n");
-    mexPrintf("v =");
-    for (int i = 0; i < v_size; ++i)
-        mexPrintf(" %f", v[i]);
-    mexPrintf("\n");
-    mexPrintf("method = %s\n", method.c_str());
-     */
-    ///////////////////////////////////////////////////////////////////////
 }
-

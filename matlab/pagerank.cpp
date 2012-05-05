@@ -110,24 +110,5 @@ void mexFunction(
     double* ret = mxGetPr(plhs[0]);
     for (int i = 0; i < num_vs; ++i)
         ret[i] = res->x[i];
-    ///////////////////////////////////////////////////////////////////////
-    // print all variables out
-    mexPrintf("num_vs = %d\n", num_vs);
-    mexPrintf("num_es = %d\n", num_es);
-    mexPrintf("edges =\n");
-    for (int i = 0; i < num_es; ++i)
-        mexPrintf("%d, %d\n", heads[i], tails[i]);
-    mexPrintf("alpha = %f\n", alpha);
-    mexPrintf("tol = %f\n", tol);
-    mexPrintf("u =");
-    for (int i = 0; i < u_size; ++i)
-        mexPrintf(" %f", u[i]);
-    mexPrintf("\n");
-    mexPrintf("v =");
-    for (int i = 0; i < v_size; ++i)
-        mexPrintf(" %f", v[i]);
-    mexPrintf("\n");
-    mexPrintf("method = %s\n", method.c_str());
-    ///////////////////////////////////////////////////////////////////////
+    delete res;
 }
-
