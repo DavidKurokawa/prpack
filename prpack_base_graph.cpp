@@ -37,7 +37,7 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
 	for (int i = 0; i < num_es; ++i)
 		heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
 	// clean up
-	free(osets);
+	delete[] osets;
 }
 
 prpack_base_graph::prpack_base_graph(const string& filename, const string& format) {
@@ -52,42 +52,6 @@ prpack_base_graph::prpack_base_graph(const string& filename, const string& forma
 	else
 		prpack_utils::validate(false, "Invalid graph format");
 	fclose(f);
-}
-
-prpack_base_graph::prpack_base_graph(int nverts, int nedges, 
-		std::pair<int,int>* edges) {
-	num_vs = nverts;
-	num_es = nedges;
-
-	// fill in heads and tails
-	num_self_es = 0;
-	int* hs = new int[num_es];
-	int* ts = new int[num_es];
-	tails = new int[num_vs];
-	memset(tails, 0, num_vs*sizeof(tails[0]));
-	for (int i = 0; i < num_es; ++i) {
-		assert(edges[i].first >= 0 && edges[i].first < num_vs);
-		assert(edges[i].second >= 0 && edges[i].second < num_vs);
-		hs[i] = edges[i].first;
-		ts[i] = edges[i].second;
-		++tails[ts[i]];
-		if (hs[i] == ts[i])
-			++num_self_es;
-	}
-	for (int i = 0, sum = 0; i < num_vs; ++i) {
-		int temp = sum;
-		sum += tails[i];
-		tails[i] = temp;
-	}
-	heads = new int[num_es];
-	int* osets = new int[num_vs];
-	memset(osets, 0, num_vs*sizeof(osets[0]));
-	for (int i = 0; i < num_es; ++i)
-		heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
-	// clean up
-	free(hs);
-	free(ts);
-	free(osets);
 }
 
 prpack_base_graph::prpack_base_graph(const mxArray* a) {
@@ -106,8 +70,8 @@ prpack_base_graph::prpack_base_graph(const mxArray* a) {
 }
 
 prpack_base_graph::~prpack_base_graph() {
-	delete heads;
-	delete tails;
+	delete[] heads;
+	delete[] tails;
 }
 
 mxArray* prpack_base_graph::to_matlab_array() const {
@@ -149,9 +113,9 @@ void prpack_base_graph::read_smat(FILE* f) {
 	for (int i = 0; i < num_es; ++i)
 		heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
 	// clean up
-	free(hs);
-	free(ts);
-	free(osets);
+	delete[] hs;
+	delete[] ts;
+	delete[] osets;
 }
 
 void prpack_base_graph::read_edges(FILE* f) {
@@ -210,6 +174,6 @@ void prpack_base_graph::read_ascii(FILE* f) {
 		for (int j = 0; j < (int) al[tails_i].size(); ++j)
 			heads[heads_i++] = al[tails_i][j];
 	}
-	delete al;
+	delete[] al;
 }
 

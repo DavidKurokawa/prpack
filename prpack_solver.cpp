@@ -52,12 +52,9 @@ prpack_solver::prpack_solver(const mxArray* a) {
 
 prpack_solver::~prpack_solver() {
 	delete bg;
-	if (gsg != NULL)
-		delete gsg;
-	if (sg != NULL)
-		delete sg;
-	if (sccg != NULL)
-		delete sccg;
+    delete gsg;
+	delete sg;
+	delete sccg;
 }
 
 mxArray* prpack_solver::to_matlab_array() {
@@ -410,9 +407,9 @@ prpack_result* prpack_solver::solve_via_schur_gs(
 	}
 	// return results
 	ret->x = prpack_utils::permute(num_vs, x, decoding);
-	free(x);
+	delete[] x;
 	if (uv_exists)
-		free(uv);
+		delete[] uv;
 	return ret;
 }
 
@@ -564,10 +561,10 @@ prpack_result* prpack_solver::solve_via_scc_gs(
 	}
 	// return results
 	ret->x = prpack_utils::permute(num_vs, x, decoding);
-	free(x);
-	free(x_outside);
+	delete[] x;
+	delete[] x_outside;
 	if (uv_exists)
-		free(uv);
+		delete[] uv;
 	return ret;
 }
 

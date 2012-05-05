@@ -96,7 +96,7 @@ void mexFunction(
     char* s = new char[method_length + 1];
     mxGetString(raw_method, s, method_length + 1);
     string method(s);
-    free(s);
+    delete[] s;
     // compute pagerank
     prpack_edge_list g;
     g.num_vs = num_vs;

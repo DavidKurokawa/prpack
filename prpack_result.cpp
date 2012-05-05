@@ -18,6 +18,6 @@ mxArray* prpack_result::to_matlab_array() const {
 }
 
 prpack_result::~prpack_result() {
-	delete x;
+	delete[] x;
 }
 

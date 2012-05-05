@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
 	sort(xval_idx, xval_idx + res->num_vs);
 	for (int i = res->num_vs - 1; i >= 0 && i >= res->num_vs - 20; --i)
 		*out << "site = " << xval_idx[i].second << ", score = " << xval_idx[i].first << endl;
-	free(xval_idx);
+	delete[] xval_idx;
 	
 	// write the entire vector
     if (in.output != "") {

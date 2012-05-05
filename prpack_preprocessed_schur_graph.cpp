@@ -81,12 +81,12 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(const mxArray* 
 }
 
 prpack_preprocessed_schur_graph::~prpack_preprocessed_schur_graph() {
-	delete ii;
-	delete inv_num_outlinks;
-	delete heads;
-	delete tails;
-	delete encoding;
-	delete decoding;
+	delete[] ii;
+	delete[] inv_num_outlinks;
+	delete[] heads;
+	delete[] tails;
+	delete[] encoding;
+	delete[] decoding;
 }
 
 mxArray* prpack_preprocessed_schur_graph::to_matlab_array() const {

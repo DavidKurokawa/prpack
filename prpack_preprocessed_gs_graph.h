@@ -15,6 +15,8 @@ namespace prpack {
 			// constructors
 			prpack_preprocessed_gs_graph(prpack_base_graph* bg);
 			prpack_preprocessed_gs_graph(const mxArray* a);
+            // destructor
+            ~prpack_preprocessed_gs_graph();
 			// method
 			mxArray* to_matlab_array() const;
 	};

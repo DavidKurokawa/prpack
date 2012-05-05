@@ -23,6 +23,8 @@ namespace prpack {
 			// constructors
 			prpack_preprocessed_scc_graph(prpack_base_graph* bg);
 			prpack_preprocessed_scc_graph(const mxArray* a);
+            // destructor
+            ~prpack_preprocessed_scc_graph();
 			// method
 			mxArray* to_matlab_array() const;
 	};

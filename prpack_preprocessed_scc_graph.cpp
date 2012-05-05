@@ -120,9 +120,9 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* 
 	// do not free num <==> encoding
 	// do not free cs1 <==> tails_inside
 	// do not free cs2 <==> tails_outside
-	free(scc);
-	free(low);
-	free(st);
+	delete[] scc;
+	delete[] low;
+	delete[] st;
 }
 
 prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(const mxArray* a) {
@@ -156,6 +156,18 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(const mxArray* a) {
     divisions = prpack_utils::matlab_array_to_int_array(raw_divisions);
     encoding = prpack_utils::matlab_array_to_int_array(raw_encoding);
     decoding = prpack_utils::matlab_array_to_int_array(raw_decoding);
+}
+
+prpack_preprocessed_scc_graph::~prpack_preprocessed_scc_graph() {
+    delete[] ii;
+    delete[] inv_num_outlinks;
+    delete[] heads_inside;
+    delete[] tails_inside;
+    delete[] heads_outside;
+    delete[] tails_outside;
+    delete[] divisions;
+    delete[] encoding;
+    delete[] decoding;
 }
 
 mxArray* prpack_preprocessed_scc_graph::to_matlab_array() const {

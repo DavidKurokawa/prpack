@@ -48,6 +48,13 @@ prpack_preprocessed_gs_graph::prpack_preprocessed_gs_graph(const mxArray* a) {
     tails = prpack_utils::matlab_array_to_int_array(raw_tails);
 }
 
+prpack_preprocessed_gs_graph::~prpack_preprocessed_gs_graph() {
+    delete[] heads;
+    delete[] tails;
+    delete[] ii;
+    delete[] inv_num_outlinks;
+}
+
 mxArray* prpack_preprocessed_gs_graph::to_matlab_array() const {
     const int num_fields = 6;
     const char* field_names[num_fields] = {"num_vs", "num_es", "ii", "inv_num_outlinks", "heads", "tails"};
