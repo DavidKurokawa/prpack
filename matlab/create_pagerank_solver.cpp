@@ -4,7 +4,7 @@
 using namespace std;
 using namespace prpack;
 
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
 	// validate number of inputs and outputs
     if (nrhs != 3)
         mexErrMsgTxt("Not enough input arguments.");
