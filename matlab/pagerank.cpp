@@ -9,7 +9,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	// validate number of inputs and outputs
     if (nrhs != 8)
         mexErrMsgTxt("Not enough input arguments.");
-	if (nlhs > 1)
+	if (nlhs > 2)
 		mexErrMsgTxt("Too many output arguments.");
     // set up raw variables
     const mxArray* raw_num_vs = prhs[0];
@@ -43,5 +43,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double* ret = mxGetPr(plhs[0]);
     for (int i = 0; i < num_vs; ++i)
         ret[i] = res->x[i];
+    if (nlhs >= 2)
+        plhs[1] = res->to_matlab_array();
     delete res;
 }

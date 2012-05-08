@@ -33,7 +33,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double* ret = mxGetPr(plhs[0]);
     for (int i = 0; i < num_vs; ++i)
         ret[i] = res->x[i];
-    plhs[1] = res->to_matlab_array();
-    plhs[2] = solver.to_matlab_array();
+    if (nlhs >= 2)
+        plhs[1] = res->to_matlab_array();
+    if (nlhs >= 3)
+        plhs[2] = solver.to_matlab_array();
     delete res;
 }
