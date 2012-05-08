@@ -95,7 +95,7 @@ double* prpack_utils::matlab_array_to_double_array(mxArray* a) {
 // Convert a long long to a matlab array.
 mxArray* prpack_utils::ll_to_matlab_array(long long x) {
 	mxArray* ret = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
-	*(int*) mxGetData(ret) = x;
+	*(long long*) mxGetData(ret) = x;
 	return ret;
 }
 
