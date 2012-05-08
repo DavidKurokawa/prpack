@@ -61,15 +61,31 @@ prpack_solver::~prpack_solver() {
 }
 
 #ifdef MATLAB_MEX_FILE
-mxArray* prpack_solver::to_matlab_array() {
+mxArray* prpack_solver::to_matlab_array(const mxArray* a) {
 	const int num_fields = 5;
 	const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
 	mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-	mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
-	mxSetField(ret, 0, "bg", bg->to_matlab_array());
-	mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
-	mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
-	mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
+    if (a == NULL) {
+        // set fields
+        mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
+        mxSetField(ret, 0, "bg", bg->to_matlab_array());
+        mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
+        mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
+        mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
+    } else {
+        // raw variables
+        mxArray* raw_read_time = mxGetField(a, 0, "read_time");
+        mxArray* raw_bg = mxGetField(a, 0, "bg");
+        mxArray* raw_gsg = mxGetField(a, 0, "gsg");
+        mxArray* raw_sg = mxGetField(a, 0, "sg");
+        mxArray* raw_sccg = mxGetField(a, 0, "sccg");
+        // set fields
+        mxSetField(ret, 0, "read_time", raw_read_time);
+        mxSetField(ret, 0, "bg", raw_bg);
+        mxSetField(ret, 0, "gsg", (mxIsEmpty(raw_gsg) && gsg != NULL) ? gsg->to_matlab_array() : raw_gsg);
+        mxSetField(ret, 0, "sg", (mxIsEmpty(raw_sg) && sg != NULL) ? sg->to_matlab_array() : raw_sg);
+        mxSetField(ret, 0, "sccg", (mxIsEmpty(raw_sccg) && sccg != NULL) ? sccg->to_matlab_array() : raw_sccg);
+    }
 	return ret;
 }
 #endif
