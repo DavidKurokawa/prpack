@@ -1,6 +1,8 @@
 #ifndef PRPACK_UTILS
 #define PRPACK_UTILS
+#ifdef MATLAB_MEX_FILE
 #include "mex.h"
+#endif
 #include <string>
 
 // Computes the time taken to do X and stores it in T.
@@ -24,6 +26,7 @@ namespace prpack {
 			static double get_time();
 			static void validate(bool condition, const std::string& msg);
 			static double* permute(int length, double* a, int* coding);
+#ifdef MATLAB_MEX_FILE
 			static mxArray* int_to_matlab_array(int x);
 			static int matlab_array_to_int(mxArray* a);
 			static mxArray* int_array_to_matlab_array(int length, int* a);
@@ -35,6 +38,7 @@ namespace prpack {
 			static mxArray* ll_to_matlab_array(long long x);
 			static mxArray* string_to_matlab_array(const std::string& s);
 			static mxArray* empty_matlab_array();
+#endif
 	};
 
 };

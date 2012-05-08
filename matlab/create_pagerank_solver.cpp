@@ -72,8 +72,8 @@ void mexFunction(
     g.num_es = num_es;
     g.heads = heads;
     g.tails = tails;
-    prpack_solver solver(&g);
+    prpack_solver* solver = new prpack_solver(&g);
     // return the pagerank solver
-    plhs[0] = solver.to_matlab_array();
+    plhs[0] = solver->to_matlab_array();
 }
 

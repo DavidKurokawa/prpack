@@ -27,6 +27,7 @@ double* prpack_utils::permute(int length, double* a, int* coding) {
 	return ret;
 }
 
+#ifdef MATLAB_MEX_FILE
 // Convert an int to a matlab array.
 mxArray* prpack_utils::int_to_matlab_array(int x) {
 	mxArray* ret = mxCreateNumericMatrix(1, 1, mxINT32_CLASS, mxREAL);
@@ -107,3 +108,4 @@ mxArray* prpack_utils::string_to_matlab_array(const string& s) {
 mxArray* prpack_utils::empty_matlab_array() {
 	return mxCreateDoubleMatrix(0, 0, mxREAL);
 }
+#endif

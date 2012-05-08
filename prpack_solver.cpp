@@ -32,6 +32,7 @@ prpack_solver::prpack_solver(const string& filename, const string& format) {
 	TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
 
+#ifdef MATLAB_MEX_FILE
 prpack_solver::prpack_solver(const mxArray* a) {
     initialize();
 	// separate raw matlab arrays
@@ -50,6 +51,7 @@ prpack_solver::prpack_solver(const mxArray* a) {
 	if (!mxIsEmpty(raw_sccg))
 		sccg = new prpack_preprocessed_scc_graph(raw_sccg);
 }
+#endif
 
 prpack_solver::~prpack_solver() {
 	delete bg;
@@ -58,6 +60,7 @@ prpack_solver::~prpack_solver() {
 	delete sccg;
 }
 
+#ifdef MATLAB_MEX_FILE
 mxArray* prpack_solver::to_matlab_array() {
 	const int num_fields = 5;
 	const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
@@ -69,6 +72,7 @@ mxArray* prpack_solver::to_matlab_array() {
 	mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
 	return ret;
 }
+#endif
 
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
 	return solve(alpha, tol, NULL, NULL, method);

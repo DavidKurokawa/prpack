@@ -7,7 +7,9 @@
 #include "prpack_result.h"
 #include "prpack_csr.h"
 #include "prpack_edge_list.h"
+#ifdef MATLAB_MEX_FILE
 #include "mex.h"
+#endif
 #include <string>
 
 // TODO Make this a user configurable variable
@@ -127,11 +129,15 @@ namespace prpack {
 			prpack_solver(prpack_edge_list* g);
 			prpack_solver(prpack_base_graph* g);
 			prpack_solver(const std::string& filename, const std::string& format);
+#ifdef MATLAB_MEX_FILE
 			prpack_solver(const mxArray* a);
+#endif
 			// destructor
 			~prpack_solver();
 			// methods
+#ifdef MATLAB_MEX_FILE
 			mxArray* to_matlab_array();
+#endif
 			prpack_result* solve(double alpha, double tol, const std::string& method);
 			prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);
 	};

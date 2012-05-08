@@ -2,6 +2,7 @@
 #include "prpack_utils.h"
 using namespace prpack;
 
+#ifdef MATLAB_MEX_FILE
 mxArray* prpack_result::to_matlab_array() const {    
 	const int num_fields = 8;
 	const char* field_names[num_fields] = {"num_vs", "num_es", "x", "read_time", "preprocess_time", "compute_time", "num_es_touched", "method"};
@@ -16,6 +17,7 @@ mxArray* prpack_result::to_matlab_array() const {
 	mxSetField(ret, 0, "method", prpack_utils::string_to_matlab_array(method));
 	return ret;
 }
+#endif
 
 prpack_result::~prpack_result() {
 	delete[] x;

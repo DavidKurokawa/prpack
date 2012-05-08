@@ -1,6 +1,8 @@
 #ifndef PRPACK_RESULT
 #define PRPACK_RESULT
+#ifdef MATLAB_MEX_FILE
 #include "mex.h"
+#endif
 #include <string>
 
 namespace prpack {
@@ -19,7 +21,9 @@ namespace prpack {
 			std::string method;
 			int converged;
 			// method
+#ifdef MATLAB_MEX_FILE
 			mxArray* to_matlab_array() const;
+#endif
 			// destructor
 			~prpack_result();
 	};

@@ -55,6 +55,7 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_base_gra
 	}
 }
 
+#ifdef MATLAB_MEX_FILE
 prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(const mxArray* a) {
 	// separate raw matlab arrays
 	mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
@@ -79,6 +80,7 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(const mxArray* 
 	encoding = prpack_utils::matlab_array_to_int_array(raw_encoding);
 	decoding = prpack_utils::matlab_array_to_int_array(raw_decoding);
 }
+#endif
 
 prpack_preprocessed_schur_graph::~prpack_preprocessed_schur_graph() {
 	delete[] ii;
@@ -89,6 +91,7 @@ prpack_preprocessed_schur_graph::~prpack_preprocessed_schur_graph() {
 	delete[] decoding;
 }
 
+#ifdef MATLAB_MEX_FILE
 mxArray* prpack_preprocessed_schur_graph::to_matlab_array() const {
     const int num_fields = 10;
     const char* field_names[num_fields] = {"num_vs", "num_es", "ii", "inv_num_outlinks", "heads", "tails", "num_no_in_vs", "num_no_out_vs", "encoding", "decoding"};
@@ -105,3 +108,4 @@ mxArray* prpack_preprocessed_schur_graph::to_matlab_array() const {
     mxSetField(ret, 0, "decoding", prpack_utils::int_array_to_matlab_array(num_vs, decoding));
 	return ret;
 }
+#endif

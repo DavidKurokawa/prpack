@@ -54,6 +54,7 @@ prpack_base_graph::prpack_base_graph(const string& filename, const string& forma
 	fclose(f);
 }
 
+#ifdef MATLAB_MEX_FILE
 prpack_base_graph::prpack_base_graph(const mxArray* a) {
 	// separate raw matlab arrays
 	mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
@@ -68,12 +69,14 @@ prpack_base_graph::prpack_base_graph(const mxArray* a) {
 	heads = prpack_utils::matlab_array_to_int_array(raw_heads);
 	tails = prpack_utils::matlab_array_to_int_array(raw_tails);
 }
+#endif
 
 prpack_base_graph::~prpack_base_graph() {
 	delete[] heads;
 	delete[] tails;
 }
 
+#ifdef MATLAB_MEX_FILE
 mxArray* prpack_base_graph::to_matlab_array() const {
 	const int num_fields = 5;
 	const char* field_names[num_fields] = {"num_vs", "num_es", "num_self_es", "heads", "tails"};
@@ -85,6 +88,7 @@ mxArray* prpack_base_graph::to_matlab_array() const {
 	mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_es, tails));
 	return ret;
 }
+#endif
 
 void prpack_base_graph::read_smat(FILE* f) {
 	// read in header
@@ -177,3 +181,38 @@ void prpack_base_graph::read_ascii(FILE* f) {
 	delete[] al;
 }
 
+prpack_base_graph::prpack_base_graph(int nverts, int nedges, 
+        std::pair<int,int>* edges) {
+    num_vs = nverts;
+    num_es = nedges;
+    
+    // fill in heads and tails
+	num_self_es = 0;
+	int* hs = new int[num_es];
+	int* ts = new int[num_es];
+	tails = new int[num_vs];
+	memset(tails, 0, num_vs*sizeof(tails[0]));
+	for (int i = 0; i < num_es; ++i) {
+        assert(edges[i].first >= 0 && edges[i].first < num_vs);
+	    assert(edges[i].second >= 0 && edges[i].second < num_vs);
+        hs[i] = edges[i].first;
+        ts[i] = edges[i].second;
+		++tails[ts[i]];
+		if (hs[i] == ts[i])
+			++num_self_es;
+	}
+	for (int i = 0, sum = 0; i < num_vs; ++i) {
+		int temp = sum;
+		sum += tails[i];
+		tails[i] = temp;
+	}
+	heads = new int[num_es];
+	int* osets = new int[num_vs];
+	memset(osets, 0, num_vs*sizeof(osets[0]));
+	for (int i = 0; i < num_es; ++i)
+		heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
+	// clean up
+	free(hs);
+	free(ts);
+	free(osets);
+}
