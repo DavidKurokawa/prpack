@@ -1,8 +1,9 @@
-classdef pagerank_solver
-    %PAGERANK_SOLVER Summary of this class goes here
-    %   Detailed explanation goes here
+classdef pagerank_solver < handle
+    %PAGERANK_SOLVER PageRank solver
+    %   A PageRank solver that upon creation takes in a graph, and between
+    %   subsequent calls of solve will store preprocessed work.
     
-    properties (SetAccess = private)
+    properties (Hidden)
         solver;
     end
     
@@ -10,7 +11,7 @@ classdef pagerank_solver
         function obj = pagerank_solver(num_vs, heads, tails)
             obj.solver = create_pagerank_solver(num_vs, heads, tails);
         end
-        function ret = solve(obj, alpha, tol, u, v, method)
+        function [x, ret] = solve(obj, alpha, tol, u, v, method)
             [x, ret, obj.solver] = use_pagerank_solver(obj.solver, alpha, tol, u, v, method);
         end
     end
