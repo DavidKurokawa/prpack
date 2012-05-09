@@ -9,6 +9,11 @@
 namespace prpack {
 
 	class prpack_preprocessed_schur_graph : public prpack_preprocessed_graph {
+        private:
+            // instance variable
+            bool from_matlab;
+            // method
+            void initialize();
 		public:
 			// instance variables
 			int num_no_in_vs;

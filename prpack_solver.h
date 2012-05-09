@@ -27,7 +27,7 @@ namespace prpack {
 			prpack_preprocessed_schur_graph* sg;
 			prpack_preprocessed_scc_graph* sccg;
 			// methods
-			void initialize();
+            void initialize();
 			static prpack_result* solve_via_gs(
 					double alpha,
 					double tol,
@@ -136,7 +136,7 @@ namespace prpack {
 			~prpack_solver();
 			// methods
 #ifdef MATLAB_MEX_FILE
-			mxArray* to_matlab_array(const mxArray* a = NULL);
+			mxArray* to_matlab_array();
 #endif
 			prpack_result* solve(double alpha, double tol, const std::string& method);
 			prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);

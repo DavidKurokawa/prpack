@@ -36,6 +36,6 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     if (nlhs >= 2)
         plhs[1] = res->to_matlab_array();
     if (nlhs >= 3)
-        plhs[2] = solver.to_matlab_array(raw_prpack_solver);
+        plhs[2] = solver.to_matlab_array();
     delete res;
 }

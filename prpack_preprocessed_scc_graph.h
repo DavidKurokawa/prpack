@@ -10,6 +10,11 @@ namespace prpack {
 
 	// Pre-processed graph class
 	class prpack_preprocessed_scc_graph : public prpack_preprocessed_graph {
+        private:
+            // instance variable
+            bool from_matlab;
+            // method
+            void initialize();
 		public:
 			// instance variables
 			int num_es_inside;

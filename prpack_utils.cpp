@@ -52,13 +52,7 @@ mxArray* prpack_utils::int_array_to_matlab_array(int length, int* a) {
 
 // Convert a matlab array to an int array.
 int* prpack_utils::matlab_array_to_int_array(mxArray* a) {
-	// TODO: change this to: return (int*) mxGetData(a);
-    int length = mxGetNumberOfElements(a);
-    int* b = (int*) mxGetData(a);
-    int* ret = new int[length];
-    for (int i = 0; i < length; ++i)
-        ret[i] = b[i];
-    return ret;
+	return (int*) mxGetData(a);
 }
 
 // Convert a double to a matlab array.
@@ -83,13 +77,7 @@ mxArray* prpack_utils::double_array_to_matlab_array(int length, double* a) {
 
 // Convert a matlab array to a double array.
 double* prpack_utils::matlab_array_to_double_array(mxArray* a) {
-	// TODO: change this to: return (double*) mxGetData(a);
-    int length = mxGetNumberOfElements(a);
-    double* b = (double*) mxGetData(a);
-    double* ret = new double[length];
-    for (int i = 0; i < length; ++i)
-        ret[i] = b[i];
-    return ret;
+	return (double*) mxGetData(a);
 }
 
 // Convert a long long to a matlab array.

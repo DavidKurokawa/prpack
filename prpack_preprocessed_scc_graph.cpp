@@ -6,7 +6,23 @@
 using namespace prpack;
 using namespace std;
 
+void prpack_preprocessed_scc_graph::initialize() {
+#ifdef MATLAB_MEX_FILE
+    from_matlab = false;
+#endif
+    ii = NULL;
+    inv_num_outlinks = NULL;
+    heads_inside = NULL;
+    tails_inside = NULL;
+    heads_outside = NULL;
+    tails_outside = NULL;
+    divisions = NULL;
+    encoding = NULL;
+    decoding = NULL;
+}
+
 prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* bg) {
+    initialize();
 	// initialize instance variables
 	num_vs = bg->num_vs;
 	num_es = bg->num_es - bg->num_self_es;
@@ -127,6 +143,8 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* 
 
 #ifdef MATLAB_MEX_FILE
 prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(const mxArray* a) {
+    initialize();
+    from_matlab = true;
     // separate raw matlab arrays
     mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
     mxArray* raw_num_es = mxGetField(a, 0, "num_es");
@@ -161,6 +179,19 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(const mxArray* a) {
 #endif
 
 prpack_preprocessed_scc_graph::~prpack_preprocessed_scc_graph() {
+#ifdef MATLAB_MEX_FILE
+    if (!from_matlab) {
+        delete[] ii;
+        delete[] inv_num_outlinks;
+        delete[] heads_inside;
+        delete[] tails_inside;
+        delete[] heads_outside;
+        delete[] tails_outside;
+        delete[] divisions;
+        delete[] encoding;
+        delete[] decoding;
+    }
+#else
     delete[] ii;
     delete[] inv_num_outlinks;
     delete[] heads_inside;
@@ -170,6 +201,7 @@ prpack_preprocessed_scc_graph::~prpack_preprocessed_scc_graph() {
     delete[] divisions;
     delete[] encoding;
     delete[] decoding;
+#endif
 }
 
 #ifdef MATLAB_MEX_FILE
@@ -182,10 +214,10 @@ mxArray* prpack_preprocessed_scc_graph::to_matlab_array() const {
     mxSetField(ret, 0, "ii", prpack_utils::double_array_to_matlab_array(num_vs, ii));
     mxSetField(ret, 0, "inv_num_outlinks", prpack_utils::double_array_to_matlab_array(num_vs, inv_num_outlinks));
     mxSetField(ret, 0, "num_es_inside", prpack_utils::int_to_matlab_array(num_es_inside));
-    mxSetField(ret, 0, "heads_inside", prpack_utils::int_array_to_matlab_array(num_vs, heads_inside));
+    mxSetField(ret, 0, "heads_inside", prpack_utils::int_array_to_matlab_array(num_es_inside, heads_inside));
     mxSetField(ret, 0, "tails_inside", prpack_utils::int_array_to_matlab_array(num_vs, tails_inside));
     mxSetField(ret, 0, "num_es_outside", prpack_utils::int_to_matlab_array(num_es_outside));
-    mxSetField(ret, 0, "heads_outside", prpack_utils::int_array_to_matlab_array(num_vs, heads_outside));
+    mxSetField(ret, 0, "heads_outside", prpack_utils::int_array_to_matlab_array(num_es_outside, heads_outside));
     mxSetField(ret, 0, "tails_outside", prpack_utils::int_array_to_matlab_array(num_vs, tails_outside));
     mxSetField(ret, 0, "num_comps", prpack_utils::int_to_matlab_array(num_comps));
     mxSetField(ret, 0, "divisions", prpack_utils::int_array_to_matlab_array(num_comps, divisions));

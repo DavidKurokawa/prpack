@@ -20,12 +20,14 @@ namespace prpack {
 			long long num_es_touched;
 			std::string method;
 			int converged;
+            // constructor
+            prpack_result();
+			// destructor
+			~prpack_result();
 			// method
 #ifdef MATLAB_MEX_FILE
 			mxArray* to_matlab_array() const;
 #endif
-			// destructor
-			~prpack_result();
 	};
 
 };

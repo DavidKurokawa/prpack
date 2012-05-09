@@ -2,6 +2,10 @@
 #include "prpack_utils.h"
 using namespace prpack;
 
+prpack_result::prpack_result() {
+    x = NULL;
+}
+
 #ifdef MATLAB_MEX_FILE
 mxArray* prpack_result::to_matlab_array() const {    
 	const int num_fields = 8;

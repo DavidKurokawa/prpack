@@ -2,33 +2,32 @@
 #include "prpack_utils.h"
 #include <cmath>
 #include <cstdlib>
-#include <string>
 using namespace prpack;
 using namespace std;
 
 void prpack_solver::initialize() {
-	gsg = NULL;
-	sg = NULL;
-	sccg = NULL;
+    gsg = NULL;
+    sg = NULL;
+    sccg = NULL;
 }
 
 prpack_solver::prpack_solver(prpack_csr* g) {
-	initialize();
+    initialize();
 	TIME(read_time, bg = new prpack_base_graph(g));
 }
 
 prpack_solver::prpack_solver(prpack_edge_list* g) {
-	initialize();
+    initialize();
 	TIME(read_time, bg = new prpack_base_graph(g));
 }
 
 prpack_solver::prpack_solver(prpack_base_graph* g) {
-	initialize();
+    initialize();
 	TIME(read_time, bg = g);
 }
 
 prpack_solver::prpack_solver(const string& filename, const string& format) {
-	initialize();
+    initialize();
 	TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
 
@@ -61,31 +60,15 @@ prpack_solver::~prpack_solver() {
 }
 
 #ifdef MATLAB_MEX_FILE
-mxArray* prpack_solver::to_matlab_array(const mxArray* a) {
+mxArray* prpack_solver::to_matlab_array() {
 	const int num_fields = 5;
 	const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
 	mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-    if (a == NULL) {
-        // set fields
-        mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
-        mxSetField(ret, 0, "bg", bg->to_matlab_array());
-        mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
-        mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
-        mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
-    } else {
-        // raw variables
-        mxArray* raw_read_time = mxGetField(a, 0, "read_time");
-        mxArray* raw_bg = mxGetField(a, 0, "bg");
-        mxArray* raw_gsg = mxGetField(a, 0, "gsg");
-        mxArray* raw_sg = mxGetField(a, 0, "sg");
-        mxArray* raw_sccg = mxGetField(a, 0, "sccg");
-        // set fields
-        mxSetField(ret, 0, "read_time", raw_read_time);
-        mxSetField(ret, 0, "bg", raw_bg);
-        mxSetField(ret, 0, "gsg", (mxIsEmpty(raw_gsg) && gsg != NULL) ? gsg->to_matlab_array() : raw_gsg);
-        mxSetField(ret, 0, "sg", (mxIsEmpty(raw_sg) && sg != NULL) ? sg->to_matlab_array() : raw_sg);
-        mxSetField(ret, 0, "sccg", (mxIsEmpty(raw_sccg) && sccg != NULL) ? sccg->to_matlab_array() : raw_sccg);
-    }
+    mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
+    mxSetField(ret, 0, "bg", bg->to_matlab_array());
+    mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
+    mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
+    mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
 	return ret;
 }
 #endif

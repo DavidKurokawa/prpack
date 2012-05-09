@@ -8,11 +8,21 @@
 using namespace prpack;
 using namespace std;
 
+void prpack_base_graph::initialize() {
+#ifdef MATLAB_MEX_FILE
+    from_matlab = false;
+#endif
+    heads = NULL;
+    tails = NULL;
+}
+
 prpack_base_graph::prpack_base_graph(prpack_csr* g) {
 	// TODO
+    initialize();
 }
 
 prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
+    initialize();
 	num_vs = g->num_vs;
 	num_es = g->num_es;
 	// fill in heads and tails
@@ -41,6 +51,7 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
 }
 
 prpack_base_graph::prpack_base_graph(const string& filename, const string& format) {
+    initialize();
 	FILE* f = fopen(filename.c_str(), "r");
 	string ext = (format == "") ? filename.substr(filename.rfind('.') + 1) : format;
 	if (ext == "smat")
@@ -56,6 +67,8 @@ prpack_base_graph::prpack_base_graph(const string& filename, const string& forma
 
 #ifdef MATLAB_MEX_FILE
 prpack_base_graph::prpack_base_graph(const mxArray* a) {
+    initialize();
+    from_matlab = true;
 	// separate raw matlab arrays
 	mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
 	mxArray* raw_num_es = mxGetField(a, 0, "num_es");
@@ -72,8 +85,15 @@ prpack_base_graph::prpack_base_graph(const mxArray* a) {
 #endif
 
 prpack_base_graph::~prpack_base_graph() {
+#ifdef MATLAB_MEX_FILE
+    if (!from_matlab) {
+        delete[] heads;
+        delete[] tails;
+    }
+#else
 	delete[] heads;
 	delete[] tails;
+#endif
 }
 
 #ifdef MATLAB_MEX_FILE
@@ -85,7 +105,7 @@ mxArray* prpack_base_graph::to_matlab_array() const {
 	mxSetField(ret, 0, "num_es", prpack_utils::int_to_matlab_array(num_es));
 	mxSetField(ret, 0, "num_self_es", prpack_utils::int_to_matlab_array(num_self_es));
 	mxSetField(ret, 0, "heads", prpack_utils::int_array_to_matlab_array(num_es, heads));
-	mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_es, tails));
+	mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_vs, tails));
 	return ret;
 }
 #endif
@@ -183,6 +203,7 @@ void prpack_base_graph::read_ascii(FILE* f) {
 
 prpack_base_graph::prpack_base_graph(int nverts, int nedges, 
         std::pair<int,int>* edges) {
+    initialize();
     num_vs = nverts;
     num_es = nedges;
     

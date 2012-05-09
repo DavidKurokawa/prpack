@@ -5,7 +5,20 @@
 using namespace prpack;
 using namespace std;
 
+void prpack_preprocessed_schur_graph::initialize() {
+#ifdef MATLAB_MEX_FILE
+    from_matlab = false;
+#endif
+    ii = NULL;
+    inv_num_outlinks = NULL;
+    heads = NULL;
+    tails = NULL;
+    encoding = NULL;
+    decoding = NULL;
+}
+
 prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_base_graph* bg) {
+    initialize();
 	// initialize instance variables
 	num_vs = bg->num_vs;
 	num_es = bg->num_es - bg->num_self_es;
@@ -57,6 +70,8 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(prpack_base_gra
 
 #ifdef MATLAB_MEX_FILE
 prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(const mxArray* a) {
+    initialize();
+    from_matlab = true;
 	// separate raw matlab arrays
 	mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
 	mxArray* raw_num_es = mxGetField(a, 0, "num_es");
@@ -83,12 +98,23 @@ prpack_preprocessed_schur_graph::prpack_preprocessed_schur_graph(const mxArray* 
 #endif
 
 prpack_preprocessed_schur_graph::~prpack_preprocessed_schur_graph() {
+#ifdef MATLAB_MEX_FILE
+    if (!from_matlab) {
+        delete[] ii;
+        delete[] inv_num_outlinks;
+        delete[] heads;
+        delete[] tails;
+        delete[] encoding;
+        delete[] decoding;
+    }
+#else
 	delete[] ii;
 	delete[] inv_num_outlinks;
 	delete[] heads;
 	delete[] tails;
 	delete[] encoding;
 	delete[] decoding;
+#endif
 }
 
 #ifdef MATLAB_MEX_FILE
@@ -101,7 +127,7 @@ mxArray* prpack_preprocessed_schur_graph::to_matlab_array() const {
     mxSetField(ret, 0, "ii", prpack_utils::double_array_to_matlab_array(num_vs, ii));
     mxSetField(ret, 0, "inv_num_outlinks", prpack_utils::double_array_to_matlab_array(num_vs, inv_num_outlinks));
     mxSetField(ret, 0, "heads", prpack_utils::int_array_to_matlab_array(num_es, heads));
-    mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_es, tails));
+    mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_vs, tails));
     mxSetField(ret, 0, "num_no_in_vs", prpack_utils::int_to_matlab_array(num_no_in_vs));
     mxSetField(ret, 0, "num_no_out_vs", prpack_utils::int_to_matlab_array(num_no_out_vs));
     mxSetField(ret, 0, "encoding", prpack_utils::int_array_to_matlab_array(num_vs, encoding));

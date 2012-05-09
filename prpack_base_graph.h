@@ -13,7 +13,10 @@ namespace prpack {
 
 	class prpack_base_graph {
 		private:
+            // instance variable
+            bool from_matlab;
 			// helper methods
+            void initialize();
 			void read_smat(std::FILE* f);
 			void read_edges(std::FILE* f);
 			void read_ascii(std::FILE* f);
