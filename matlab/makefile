@@ -4,6 +4,7 @@ FILES = utils.cpp ../*.cpp ../*.h
 
 all : use_pagerank_solver.mex* create_pagerank_solver.mex*
 
+
 use_pagerank_solver.mex* : use_pagerank_solver.cpp $(FILES)
 	mex -v -I../ use_pagerank_solver.cpp utils.cpp ../*.cpp CXXFLAGS="\$$CXXFLAGS $(CXXFLAGS)" LDFLAGS="\$$LDFLAGS $(CXXFLAGS)"
 
@@ -16,4 +17,6 @@ clean:
 test: 
 	matlab -nodesktop -nosplash -r test_main
 
+debug: 
+	matlab -Dgdb
 .PHONY : all clean test
