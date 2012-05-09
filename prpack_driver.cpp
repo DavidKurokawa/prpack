@@ -13,7 +13,7 @@ using namespace prpack;
 using namespace std;
 
 // in prpack_driver_benchmark.cpp
-void benchmark();
+void benchmark(int numverts=200000);
 
 // Contains all possible input parameters.
 class input {
@@ -84,7 +84,7 @@ void write_vector(double *x, int n, ostream& out) {
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, const char** argv) {
     // parse command args
     input in;
     in.graph = string(argv[1]);
@@ -103,6 +103,9 @@ int main(int argc, char** argv) {
 
     if (in.graph == "?") {
         benchmark();
+        return 0;
+    } else if (argv[1][0] == '?') {
+        benchmark(atoi(&argv[1][1]));
         return 0;
     }
 

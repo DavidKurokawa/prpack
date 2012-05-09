@@ -244,13 +244,13 @@ void generate_graph(int nverts, double pow, int maxdeg,
 }
 
 /** Compute a performance benchmark on a synthetic graph. */
-void benchmark() {
+void benchmark(int nverts) {
     int nthreads = omp_get_max_threads();
     cout << "Can use up to " << nthreads << " threads" << endl;
     
     // test sizes
     // generate a 10000 node graph
-    int nverts = 200000;
+    assert(nverts > 0);
     std::vector<std::pair<int,int> > edges;
     generate_graph(nverts, 1.8, 10000, edges);
     prpack::prpack_base_graph *g = new prpack::prpack_base_graph(
@@ -259,16 +259,23 @@ void benchmark() {
     cout << "nedges = " << edges.size() << endl;
     prpack::prpack_solver solver(g);
     
+    int threadseq[] = {2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, 30, 32,
+    40, 48, 50, 56, 60, 64, 80, 96, 120, 144, 160};
+    int ntests = sizeof(threadseq)/sizeof(int);
+    
     {
         cout << "method = sccgs" << endl;    
         omp_set_num_threads(1);
-        prpack::prpack_result* res = solver.solve(0.85, 1.e-10, NULL, NULL, "sccgs");
-        cout << "  preprocess time = " << res->preprocess_time << "s" << endl;
-        cout << "  1-thread compute time = " << res->compute_time << "s" << endl;
-        for (int t=2; t<=nthreads; ++t) {
-            omp_set_num_threads(t);
+        prpack::prpack_result* res1 = solver.solve(0.85, 1.e-10, NULL, NULL, "sccgs");
+        cout << "  preprocess time = " << res1->preprocess_time << "s" << endl;
+        cout << "  1-thread compute time = " << res1->compute_time << "s" << endl;
+        for (int t=0; t<ntests; ++t) {
+            int nt = threadseq[t];
+            if (nt > nthreads) { break; }
+            omp_set_num_threads(nt);
             prpack::prpack_result* res = solver.solve(0.85, 1.e-10, NULL, NULL, "sccgs");
-            cout << "  " << t << "-thread compute time = " << res->compute_time << "s" 
+            cout << "  " << nt << "-thread compute time = " << res->compute_time << "s" 
+                 << "  ("<< res1->compute_time/res->compute_time << "x) " 
                  << "  " << res->num_es_touched/(double)edges.size() << " eff iters" 
                  << endl;
         }
