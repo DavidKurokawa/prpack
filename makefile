@@ -27,7 +27,11 @@ test: $(PROG)
 perf: $(PROG)
 	./prpack_driver ?
 
+matlab:	
+	cd matlab; make
+
 clean:
 	rm *.o ${PROG} -f
+	
 
-.PHONY: all clean test
+.PHONY: all clean test matlab
