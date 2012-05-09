@@ -22,49 +22,138 @@
 
 using namespace std;
 
-/* 
- * The following code contains a few different types of utility
- * codes I've written over the years.
- * They help with single-threaded random number generation.
- */
+// used random generator from
+// http://berenger.eu/blog/2010/10/20/c-mersenne-twister-simple-class-random-generator/
+ 
+// Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
+// All rights reserved.
+// Some source from by Jasper Bedaux 2003/1/1 (see http://www.bedaux.net/mtrand/)
+// and Isaku Wada, 2002/01/09
+// Here we just create a pretty and easy to use class
+// based on their work
+// Mersenne Twister random number generator
+ 
+/**
+* @brief Random class for the brainable engine
+*/
+class BRand {
+public:
+    /** Singleton controller */
+    static BRand Controller;
+ 
+private:
+    /**
+    * @brief default constructor private to use singleton
+    */
+    BRand() {
+        seed(5489UL);
+    }
+ 
+    /**
+    * @brief Destructor
+    */
+    virtual ~BRand() {} // destructor
+ 
+public:
+    /**
+    * @brief Set seed with 32 bit integer
+    * @param seed
+    */
+    void seed(unsigned long);
+ 
+    /**
+    * @brief overload operator() to make this a generator (functor)
+    */
+    unsigned long operator()(){
+        return rand_int32();
+    }
+ 
+    /**
+    * @brief Get number in [0, 1]
+    */
+    double nextClosed() {
+        return static_cast<double>(rand_int32()) * (1. / 4294967295.); // divided by 2^32 - 1
+    }
+ 
+    /**
+    * @brief Get number in (0, 1)
+    */
+    double nextOpened() {
+        return (static_cast<double>(rand_int32()) + .5) * (1. / 4294967296.);// divided by 2^32
+    }
+ 
+protected:
+    /**
+    * @brief To have the next generated number
+    * @brief used by derived classes, otherwise not accessible; use the ()-operator
+    */
+    inline unsigned long rand_int32() { // generate 32 bit random int
+        if (P == N) gen_state(); // new state vector needed
+        // gen_state() is split off to be non-inline, because it is only called once
+        // in every 624 calls and otherwise irand() would become too big to get inlined
+        unsigned long x = State[P++];
+        x ^= (x >> 11);
+        x ^= (x << 7) & 0x9D2C5680UL;
+        x ^= (x << 15) & 0xEFC60000UL;
+        return x ^ (x >> 18);
+    }
+ 
+private:
+    static const int N = 624;
+    static const int M = 397;
+ 
+    // the variables below are static (no duplicates can exist)
+    static unsigned long State[N]; // state vector array
+    static int P; // position in state array
+ 
+    /**
+    * @biref used by gen_state()
+    * @brief private functions used to generate the pseudo random numbers
+    */
+    unsigned long twiddle(unsigned long u, unsigned long v) {
+        return (((u & 0x80000000UL) | (v & 0x7FFFFFFFUL)) >> 1)
+            ^ ((v & 1UL) ? 0x9908B0DFUL : 0x0UL);
+    }
+    /**
+    * @brief generate new state
+    */
+    void gen_state();
+};
 
-/* Setup using TR1 on various platforms */
-#if defined(_WIN32) || defined(_WIN64)
-  #pragma warning(disable:4996)
-  #include <random>
-  #define tr1ns std::tr1
-#elif defined __GNUC__
-  #define GCC_VERSION (__GNUC__ * 10000 \
-                                                   + __GNUC_MINOR__ * 100 \
-                                                   + __GNUC_PATCHLEVEL__)
-  #if GCC_VERSION < 40600
-    #include <tr1/random>
-    #define tr1ns std::tr1
-    #define uniform_real_distribution uniform_real
-    #define uniform_int_distribution uniform_int
-  #else
-    #include <random>
-    #define tr1ns std
-  #endif
-#else
-  #include <random>
-  #define tr1ns std  
-#endif  
-
-tr1ns::mt19937 sparfun_rand;
-
-typedef tr1ns::mt19937 generator_t;
-typedef tr1ns::uniform_real_distribution <double> distribution_t;
-typedef tr1ns::variate_generator<generator_t, distribution_t> variate_t;
-variate_t sparfun_rand_unif(sparfun_rand, distribution_t(0.0, 1.0));
-
-
-/** Generate a uniform random number. */
-double sf_rand(double min0, double max0) {
-  tr1ns::uniform_real_distribution<double> dist(min0,max0);
-  return dist(sparfun_rand_unif);
+// non-inline function definitions and static member definitions cannot
+// reside in header file because of the risk of multiple declarations
+ 
+/** Singleton */
+BRand BRand::Controller;
+/** Static variables */
+unsigned long BRand::State[N] = {0x0UL};
+int BRand::P = 0;
+ 
+/** generate new state vector */
+void BRand::gen_state() {
+    for (int i = 0; i < (N - M); ++i){
+        State[i] = State[i + M] ^ twiddle(State[i], State[i + 1]);
+    }
+    for (int i = N - M; i < (N - 1); ++i){
+        State[i] = State[i + M - N] ^ twiddle(State[i], State[i + 1]);
+    }
+    State[N - 1] = State[M - 1] ^ twiddle(State[N - 1], State[0]);
+    P = 0; // reset position
 }
-
+ 
+/** init by 32 bit seed */
+void BRand::seed(unsigned long s) {
+    State[0] = s & 0xFFFFFFFFUL; // for > 32 bit machines
+    for (int i = 1; i < N; ++i) {
+        State[i] = 1812433253UL * (State[i - 1] ^ (State[i - 1] >> 30)) + i;
+        // see Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier
+        // in the previous versions, MSBs of the seed affect only MSBs of the array state
+        // 2002/01/09 modified by Makoto Matsumoto
+        State[i] &= 0xFFFFFFFFUL; // for > 32 bit machines
+    }
+    P = N; // force gen_state() to be called for next random number
+}
+ 
 
 /** 
  * @param dist a cumulative probability distribution of size n
@@ -73,7 +162,7 @@ double sf_rand(double min0, double max0) {
  */
 size_t sf_rand_distribution(size_t n, double* dist)
 {
-    double rval = sf_rand(0.,1.);
+    double rval = BRand::Controller.nextClosed();
     size_t i=0;
     // TODO add binary search here
     for (; i<n; i++) {
@@ -85,12 +174,11 @@ size_t sf_rand_distribution(size_t n, double* dist)
     return i;
 }
 
-unsigned int sf_rand_size(size_t maxval)
+unsigned long sf_rand_size(unsigned long n)
 {
-    assert(maxval > 0);
-    tr1ns::uniform_int_distribution<size_t> dist(0,maxval-1);
-    return dist(sparfun_rand_unif);
+    return BRand::Controller() % n;
 }
+ 
 
 /** Compute a vector of degrees for a power-law */
 template <typename VertexType>
