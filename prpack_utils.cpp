@@ -6,9 +6,18 @@
 using namespace prpack;
 using namespace std;
 
-// Returns the current time.
-double prpack_utils::get_time() {
-    return clock()/double(CLOCKS_PER_SEC);
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/timeb.h>
+double prpack_utils::get_time()
+{
+#if defined(_WIN32) || defined(_WIN64)
+  struct __timeb64 t; _ftime64(&t);
+  return (t.time*1.0 + t.millitm/1000.0);
+#else
+  struct timeval t; gettimeofday(&t, 0);
+  return (t.tv_sec*1.0 + t.tv_usec/1000000.0);
+#endif
 }
 
 // Fails and outputs 'msg' if 'condition' is false.
