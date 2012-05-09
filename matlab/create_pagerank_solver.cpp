@@ -27,6 +27,11 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     g.tails = tails;
     prpack_solver* solver = new prpack_solver(&g);
     // return the pagerank solver
-    plhs[0] = solver->to_matlab_array();
+    mxArray* raw_solver = solver->to_matlab_array(NULL);
+    const int num_fields = 1;
+    const char* field_names[num_fields] = {"solver"};
+    mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
+    mxSetField(ret, 0, "solver", raw_solver);
+    plhs[0] = ret;
 }
 

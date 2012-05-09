@@ -12,7 +12,7 @@ classdef pagerank_solver < handle
             obj.solver = create_pagerank_solver(num_vs, heads, tails);
         end
         function [x, ret] = solve(obj, alpha, tol, u, v, method)
-            [x, ret, obj.solver] = use_pagerank_solver(obj.solver, alpha, tol, u, v, method);
+            [x, ret] = use_pagerank_solver(obj.solver, alpha, tol, u, v, method);
         end
     end
     

@@ -60,16 +60,25 @@ prpack_solver::~prpack_solver() {
 }
 
 #ifdef MATLAB_MEX_FILE
-mxArray* prpack_solver::to_matlab_array() {
-    const int num_fields = 5;
-    const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
-    mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-    mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
-    mxSetField(ret, 0, "bg", bg->to_matlab_array());
-    mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
-    mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
-    mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
-    return ret;
+mxArray* prpack_solver::to_matlab_array(mxArray* a) {
+    if (a == NULL) {
+        const int num_fields = 5;
+        const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
+        mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
+        mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
+        mxSetField(ret, 0, "bg", bg->to_matlab_array());
+        mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
+        mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
+        mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
+        return ret;
+    } else {
+        if (gsg != NULL && mxIsEmpty(mxGetField(a, 0, "gsg")))
+            mxSetField(a, 0, "gsg", gsg->to_matlab_array());
+        if (sg != NULL && mxIsEmpty(mxGetField(a, 0, "sg")))
+            mxSetField(a, 0, "sg", sg->to_matlab_array());
+        if (sccg != NULL && mxIsEmpty(mxGetField(a, 0, "sccg")))
+            mxSetField(a, 0, "sccg", sccg->to_matlab_array());
+    }
 }
 #endif
 
@@ -668,4 +677,3 @@ prpack_result* prpack_solver::combine_uv(
     delete ret_v;
     return ret;
 }
-
