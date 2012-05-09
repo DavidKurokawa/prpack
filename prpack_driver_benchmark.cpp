@@ -169,10 +169,10 @@ void benchmark() {
                                         nverts, edges.size(), &edges[0]);
     cout << "nverts = " << nverts << endl;
     cout << "nedges = " << edges.size() << endl;
-	prpack::prpack_solver solver(g);
-	
-	{
-        cout << "method = sccgs" << endl;	
+    prpack::prpack_solver solver(g);
+    
+    {
+        cout << "method = sccgs" << endl;    
         omp_set_num_threads(1);
         prpack::prpack_result* res = solver.solve(0.85, 1.e-10, NULL, NULL, "sccgs");
         cout << "  preprocess time = " << res->preprocess_time << "s" << endl;
@@ -185,8 +185,8 @@ void benchmark() {
                  << endl;
         }
     }
-	
-	{
+    
+    {
         cout << "method = gs" << endl;
         prpack::prpack_result* res = solver.solve(0.85, 1.e-10, NULL, NULL, "gs");
         cout << "  preprocess time = " << res->preprocess_time << "s" << endl;

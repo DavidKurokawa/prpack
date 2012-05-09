@@ -11,37 +11,37 @@
 
 namespace prpack {
 
-	class prpack_base_graph {
-		private:
+    class prpack_base_graph {
+        private:
             // instance variable
             bool from_matlab;
-			// helper methods
+            // helper methods
             void initialize();
-			void read_smat(std::FILE* f);
-			void read_edges(std::FILE* f);
-			void read_ascii(std::FILE* f);
-		public:
-			// instance variables
-			int num_vs;
-			int num_es;
-			int num_self_es;
-			int* heads;
-			int* tails;
-			// constructors
-			prpack_base_graph(prpack_csr* g);
-			prpack_base_graph(prpack_edge_list* g);
-			prpack_base_graph(const std::string& filename, const std::string& format);
+            void read_smat(std::FILE* f);
+            void read_edges(std::FILE* f);
+            void read_ascii(std::FILE* f);
+        public:
+            // instance variables
+            int num_vs;
+            int num_es;
+            int num_self_es;
+            int* heads;
+            int* tails;
+            // constructors
+            prpack_base_graph(prpack_csr* g);
+            prpack_base_graph(prpack_edge_list* g);
+            prpack_base_graph(const std::string& filename, const std::string& format);
 #ifdef MATLAB_MEX_FILE
-			prpack_base_graph(const mxArray* a);
+            prpack_base_graph(const mxArray* a);
 #endif
             prpack_base_graph(int nverts, int nedges, std::pair<int,int>* edges);
-			// destructor
-			~prpack_base_graph();
-			// method
+            // destructor
+            ~prpack_base_graph();
+            // method
 #ifdef MATLAB_MEX_FILE
-			mxArray* to_matlab_array() const;
+            mxArray* to_matlab_array() const;
 #endif
-	};
+    };
 
 };
 

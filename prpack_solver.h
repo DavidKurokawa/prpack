@@ -17,130 +17,130 @@
 
 namespace prpack {
 
-	// Solver class.
-	class prpack_solver {
-		private:
-			// instance variables
-			double read_time;
-			prpack_base_graph* bg;
-			prpack_preprocessed_gs_graph* gsg;
-			prpack_preprocessed_schur_graph* sg;
-			prpack_preprocessed_scc_graph* sccg;
-			// methods
+    // Solver class.
+    class prpack_solver {
+        private:
+            // instance variables
+            double read_time;
+            prpack_base_graph* bg;
+            prpack_preprocessed_gs_graph* gsg;
+            prpack_preprocessed_schur_graph* sg;
+            prpack_preprocessed_scc_graph* sccg;
+            // methods
             void initialize();
-			static prpack_result* solve_via_gs(
-					double alpha,
-					double tol,
-					int num_vs,
-					int num_es,
-					int* heads,
-					int* tails,
-					double* ii,
-					double* inv_num_outlinks,
-					double* u,
-					double* v);
-			static prpack_result* solve_via_gs_err(
-					double alpha,
-					double tol,
-					int num_vs,
-					int num_es,
-					int* heads,
-					int* tails,
-					double* ii,
-					double* inv_num_outlinks,
-					double* u,
-					double* v);
-			static prpack_result* solve_via_schur_gs(
-					double alpha,
-					double tol,
-					int num_vs,
-					int num_no_in_vs,
-					int num_no_out_vs,
-					int num_es,
-					int* heads,
-					int* tails,
-					double* ii,
-					double* inv_num_outlinks,
-					double* uv,
-					int* encoding,
-					int* decoding,
-					bool normalize = true);
-			static prpack_result* solve_via_schur_gs_uv(
-					double alpha,
-					double tol,
-					int num_vs,
-					int num_no_in_vs,
-					int num_no_out_vs,
-					int num_es,
-					int* heads,
-					int* tails,
-					double* ii,
-					double* inv_num_outlinks,
-					double* u,
-					double* v,
-					int* encoding,
-					int* decoding);
-			static prpack_result* solve_via_scc_gs(
-					double alpha,
-					double tol,
-					int num_vs,
-					int num_es_inside,
-					int* heads_inside,
-					int* tails_inside,
-					int num_es_outside,
-					int* heads_outside,
-					int* tails_outside,
-					double* ii,
-					double* inv_num_outlinks,
-					double* uv,
-					int num_comps,
-					int* divisions,
-					int* encoding,
-					int* decoding,
-					bool normalize = true);
-			static prpack_result* solve_via_scc_gs_uv(
-					double alpha,
-					double tol,
-					int num_vs,
-					int num_es_inside,
-					int* heads_inside,
-					int* tails_inside,
-					int num_es_outside,
-					int* heads_outside,
-					int* tails_outside,
-					double* ii,
-					double* inv_num_outlinks,
-					double* u,
-					double* v,
-					int num_comps,
-					int* divisions,
-					int* encoding,
-					int* decoding);
-			static prpack_result* combine_uv(
-					int num_vs,
-					double* inv_num_outlinks,
-					int* encoding,
-					double alpha,
-					prpack_result* ret_u,
-					prpack_result* ret_v);
-		public:
-			// constructors
-			prpack_solver(prpack_csr* g);
-			prpack_solver(prpack_edge_list* g);
-			prpack_solver(prpack_base_graph* g);
-			prpack_solver(const std::string& filename, const std::string& format);
+            static prpack_result* solve_via_gs(
+                    double alpha,
+                    double tol,
+                    int num_vs,
+                    int num_es,
+                    int* heads,
+                    int* tails,
+                    double* ii,
+                    double* inv_num_outlinks,
+                    double* u,
+                    double* v);
+            static prpack_result* solve_via_gs_err(
+                    double alpha,
+                    double tol,
+                    int num_vs,
+                    int num_es,
+                    int* heads,
+                    int* tails,
+                    double* ii,
+                    double* inv_num_outlinks,
+                    double* u,
+                    double* v);
+            static prpack_result* solve_via_schur_gs(
+                    double alpha,
+                    double tol,
+                    int num_vs,
+                    int num_no_in_vs,
+                    int num_no_out_vs,
+                    int num_es,
+                    int* heads,
+                    int* tails,
+                    double* ii,
+                    double* inv_num_outlinks,
+                    double* uv,
+                    int* encoding,
+                    int* decoding,
+                    bool normalize = true);
+            static prpack_result* solve_via_schur_gs_uv(
+                    double alpha,
+                    double tol,
+                    int num_vs,
+                    int num_no_in_vs,
+                    int num_no_out_vs,
+                    int num_es,
+                    int* heads,
+                    int* tails,
+                    double* ii,
+                    double* inv_num_outlinks,
+                    double* u,
+                    double* v,
+                    int* encoding,
+                    int* decoding);
+            static prpack_result* solve_via_scc_gs(
+                    double alpha,
+                    double tol,
+                    int num_vs,
+                    int num_es_inside,
+                    int* heads_inside,
+                    int* tails_inside,
+                    int num_es_outside,
+                    int* heads_outside,
+                    int* tails_outside,
+                    double* ii,
+                    double* inv_num_outlinks,
+                    double* uv,
+                    int num_comps,
+                    int* divisions,
+                    int* encoding,
+                    int* decoding,
+                    bool normalize = true);
+            static prpack_result* solve_via_scc_gs_uv(
+                    double alpha,
+                    double tol,
+                    int num_vs,
+                    int num_es_inside,
+                    int* heads_inside,
+                    int* tails_inside,
+                    int num_es_outside,
+                    int* heads_outside,
+                    int* tails_outside,
+                    double* ii,
+                    double* inv_num_outlinks,
+                    double* u,
+                    double* v,
+                    int num_comps,
+                    int* divisions,
+                    int* encoding,
+                    int* decoding);
+            static prpack_result* combine_uv(
+                    int num_vs,
+                    double* inv_num_outlinks,
+                    int* encoding,
+                    double alpha,
+                    prpack_result* ret_u,
+                    prpack_result* ret_v);
+        public:
+            // constructors
+            prpack_solver(prpack_csr* g);
+            prpack_solver(prpack_edge_list* g);
+            prpack_solver(prpack_base_graph* g);
+            prpack_solver(const std::string& filename, const std::string& format);
 #ifdef MATLAB_MEX_FILE
-			prpack_solver(const mxArray* a);
+            prpack_solver(const mxArray* a);
 #endif
-			// destructor
-			~prpack_solver();
-			// methods
+            // destructor
+            ~prpack_solver();
+            // methods
 #ifdef MATLAB_MEX_FILE
-			mxArray* to_matlab_array();
+            mxArray* to_matlab_array();
 #endif
-			prpack_result* solve(double alpha, double tol, const std::string& method);
-			prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);
-	};
+            prpack_result* solve(double alpha, double tol, const std::string& method);
+            prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);
+    };
 
 };
 

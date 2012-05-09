@@ -6,11 +6,11 @@ using namespace std;
 using namespace prpack;
 
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
-	// validate number of inputs and outputs
+    // validate number of inputs and outputs
     if (nrhs != 8)
         mexErrMsgTxt("Not enough input arguments.");
-	if (nlhs > 2)
-		mexErrMsgTxt("Too many output arguments.");
+    if (nlhs > 2)
+        mexErrMsgTxt("Too many output arguments.");
     // set up raw variables
     const mxArray* raw_num_vs = prhs[0];
     const mxArray* raw_heads = prhs[1];
@@ -47,3 +47,4 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
         plhs[1] = res->to_matlab_array();
     delete res;
 }
+

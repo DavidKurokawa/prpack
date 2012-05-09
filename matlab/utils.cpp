@@ -88,3 +88,4 @@ string parse_method(const mxArray* raw_method) {
     delete[] s;
     return method;
 }
+
