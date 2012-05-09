@@ -38,13 +38,11 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     g.tails = tails;
     prpack_solver solver(&g);
     prpack_result* res = solver.solve(alpha, tol, u, v, method);
-    // return vector
-    plhs[0] = mxCreateDoubleMatrix(num_vs, 1, mxREAL);
-    double* ret = mxGetPr(plhs[0]);
-    for (int i = 0; i < num_vs; ++i)
-        ret[i] = res->x[i];
+    // return
+    mxArray* ares = res->to_matlab_array();
+    plhs[0] = mxGetField(ares, 0, "x");
     if (nlhs >= 2)
-        plhs[1] = res->to_matlab_array();
+        plhs[1] = ares;
     delete res;
 }
 

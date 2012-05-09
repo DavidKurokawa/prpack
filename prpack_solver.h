@@ -136,7 +136,7 @@ namespace prpack {
             ~prpack_solver();
             // methods
 #ifdef MATLAB_MEX_FILE
-            mxArray* to_matlab_array();
+            mxArray* to_matlab_array(mxArray* a);
 #endif
             prpack_result* solve(double alpha, double tol, const std::string& method);
             prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);
