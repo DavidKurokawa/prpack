@@ -1,11 +1,24 @@
-function [x,ret] = pagerank(A)
+function [x, stats] = pagerank(matrix, alpha, tol, u, v, method)
+%PAGERANK Computes the PageRank
+%   Computes the PageRank of the sparse matrix given with the given
+%   parameters.
+%   Inputs:
+%       matrix = a sparse matrix whose non-zero entries indicate edges (all
+%                entry values are ignored)
+%       alpha  = alpha value
+%       tol    = tolerance allowed for error
+%       u      = u vector
+%       v      = v vector
+%       method = [optional] method to use to compute PageRank
 
-assert(size(A,1)==size(A,2));
-n=size(A,1);
-[i,j,v] = find(A);
-i = int32(i-1);
-j = int32(j-1);
-S = pagerank_solver(int32(n),i,j);
-u = [];
-v = [];
-[x,ret] = S.solve(0.85,1e-10,u,v,'gs');
+prs = pagerank_solver(matrix);
+if (nargin < 4)
+    error('Too few input arguments.');
+elseif (nargin == 5)
+    [x, stats] = prs.solve(alpha, tol, u, v);
+elseif (nargin == 6)
+    [x, stats] = prs.solve(alpha, tol, u, v, method);
+else
+    error('Too many input arguments.');
+
+end
