@@ -25,9 +25,8 @@ bool is_string(const mxArray* a) {
     return mxIsChar(a) && is_vector(a);
 }
 
-// TODO: handle if this is 32/64
 prpack_solver* parse_solver(const mxArray* raw_solver_ptr) {
-    int solver_ptr_val = *(int*) mxGetData(raw_solver_ptr);
+    unsigned long long solver_ptr_val = *(unsigned long long*) mxGetData(raw_solver_ptr);
     return reinterpret_cast<prpack_solver*>(solver_ptr_val);
 }
 
@@ -97,10 +96,9 @@ mxArray* string_to_matlab_array(const string& s) {
     return mxCreateString(s.c_str());
 }
 
-// TODO: handle if this is 32/64
 mxArray* solver_to_matlab_array(prpack_solver* solver) {
-    mxArray* ret = mxCreateNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
-    *(int*) mxGetData(ret) = reinterpret_cast<int>(solver);
+    mxArray* ret = mxCreateNumericMatrix(1, 1, mxUINT64_CLASS, mxREAL);
+    *(unsigned long long*) mxGetData(ret) = reinterpret_cast<unsigned long long>(solver);
     return ret;
 }
 
