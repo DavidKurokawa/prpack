@@ -45,4 +45,3 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
         plhs[1] = ares;
     delete res;
 }
-

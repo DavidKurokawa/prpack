@@ -11,6 +11,11 @@ void prpack_solver::initialize() {
     sccg = NULL;
 }
 
+prpack_solver::prpack_solver(prpack_csc* g) {
+    initialize();
+    TIME(read_time, bg = new prpack_base_graph(g));
+}
+
 prpack_solver::prpack_solver(prpack_csr* g) {
     initialize();
     TIME(read_time, bg = new prpack_base_graph(g));
@@ -31,27 +36,6 @@ prpack_solver::prpack_solver(const string& filename, const string& format) {
     TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
 
-#ifdef MATLAB_MEX_FILE
-prpack_solver::prpack_solver(const mxArray* a) {
-    initialize();
-    // separate raw matlab arrays
-    mxArray* raw_read_time = mxGetField(a, 0, "read_time");
-    mxArray* raw_bg = mxGetField(a, 0, "bg");
-    mxArray* raw_gsg = mxGetField(a, 0, "gsg");
-    mxArray* raw_sg = mxGetField(a, 0, "sg");
-    mxArray* raw_sccg = mxGetField(a, 0, "sccg");
-    // initialize instance variables
-    read_time = prpack_utils::matlab_array_to_double(raw_read_time);
-    bg = new prpack_base_graph(raw_bg);
-    if (!mxIsEmpty(raw_gsg))
-        gsg = new prpack_preprocessed_gs_graph(raw_gsg);
-    if (!mxIsEmpty(raw_sg))
-        sg = new prpack_preprocessed_schur_graph(raw_sg);
-    if (!mxIsEmpty(raw_sccg))
-        sccg = new prpack_preprocessed_scc_graph(raw_sccg);
-}
-#endif
-
 prpack_solver::~prpack_solver() {
     delete bg;
     delete gsg;
@@ -59,28 +43,9 @@ prpack_solver::~prpack_solver() {
     delete sccg;
 }
 
-#ifdef MATLAB_MEX_FILE
-mxArray* prpack_solver::to_matlab_array(mxArray* a) {
-    if (a == NULL) {
-        const int num_fields = 5;
-        const char* field_names[num_fields] = {"read_time", "bg", "gsg", "sg", "sccg"};
-        mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-        mxSetField(ret, 0, "read_time", prpack_utils::double_to_matlab_array(read_time));
-        mxSetField(ret, 0, "bg", bg->to_matlab_array());
-        mxSetField(ret, 0, "gsg", (gsg != NULL) ? gsg->to_matlab_array() : prpack_utils::empty_matlab_array());
-        mxSetField(ret, 0, "sg", (sg != NULL) ? sg->to_matlab_array() : prpack_utils::empty_matlab_array());
-        mxSetField(ret, 0, "sccg", (sccg != NULL) ? sccg->to_matlab_array() : prpack_utils::empty_matlab_array());
-        return ret;
-    } else {
-        if (gsg != NULL && mxIsEmpty(mxGetField(a, 0, "gsg")))
-            mxSetField(a, 0, "gsg", gsg->to_matlab_array());
-        if (sg != NULL && mxIsEmpty(mxGetField(a, 0, "sg")))
-            mxSetField(a, 0, "sg", sg->to_matlab_array());
-        if (sccg != NULL && mxIsEmpty(mxGetField(a, 0, "sccg")))
-            mxSetField(a, 0, "sccg", sccg->to_matlab_array());
-    }
+int prpack_solver::get_num_vs() {
+    return bg->num_vs;
 }
-#endif
 
 prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
     return solve(alpha, tol, NULL, NULL, method);

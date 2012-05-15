@@ -9,16 +9,53 @@ using namespace prpack;
 using namespace std;
 
 void prpack_base_graph::initialize() {
-#ifdef MATLAB_MEX_FILE
-    from_matlab = false;
-#endif
     heads = NULL;
     tails = NULL;
 }
 
-prpack_base_graph::prpack_base_graph(prpack_csr* g) {
-    // TODO
+prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     initialize();
+    num_vs = g->num_vs;
+    num_es = g->num_es;
+    // fill in heads and tails
+    num_self_es = 0;
+    int* hs = g->heads;
+    int* ts = g->tails;
+    tails = new int[num_vs];
+    memset(tails, 0, num_vs*sizeof(tails[0]));
+    for (int h = 0; h < num_vs; ++h) {
+        int start_ti = hs[h];
+        int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
+        for (int ti = start_ti; ti < end_ti; ++ti) {
+            int t = ts[ti];
+            ++tails[t];
+            if (h == t)
+                ++num_self_es;
+        }
+    }
+    for (int i = 0, sum = 0; i < num_vs; ++i) {
+        int temp = sum;
+        sum += tails[i];
+        tails[i] = temp;
+    }
+    heads = new int[num_es];
+    int* osets = new int[num_vs];
+    memset(osets, 0, num_vs*sizeof(osets[0]));
+    for (int h = 0; h < num_vs; ++h) {
+        int start_ti = hs[h];
+        int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
+        for (int ti = start_ti; ti < end_ti; ++ti) {
+            int t = ts[ti];
+            heads[tails[t] + osets[t]++] = h;
+        }
+    }
+    // clean up
+    delete[] osets;
+}
+
+prpack_base_graph::prpack_base_graph(prpack_csr* g) {
+    initialize();
+    // TODO
 }
 
 prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
@@ -65,50 +102,10 @@ prpack_base_graph::prpack_base_graph(const string& filename, const string& forma
     fclose(f);
 }
 
-#ifdef MATLAB_MEX_FILE
-prpack_base_graph::prpack_base_graph(const mxArray* a) {
-    initialize();
-    from_matlab = true;
-    // separate raw matlab arrays
-    mxArray* raw_num_vs = mxGetField(a, 0, "num_vs");
-    mxArray* raw_num_es = mxGetField(a, 0, "num_es");
-    mxArray* raw_num_self_es = mxGetField(a, 0, "num_self_es");
-    mxArray* raw_heads = mxGetField(a, 0, "heads");
-    mxArray* raw_tails = mxGetField(a, 0, "tails");
-    // initialize instance variables
-    num_vs = prpack_utils::matlab_array_to_int(raw_num_vs);
-    num_es = prpack_utils::matlab_array_to_int(raw_num_es);
-    num_self_es = prpack_utils::matlab_array_to_int(raw_num_self_es);
-    heads = prpack_utils::matlab_array_to_int_array(raw_heads);
-    tails = prpack_utils::matlab_array_to_int_array(raw_tails);
-}
-#endif
-
 prpack_base_graph::~prpack_base_graph() {
-#ifdef MATLAB_MEX_FILE
-    if (!from_matlab) {
-        delete[] heads;
-        delete[] tails;
-    }
-#else
     delete[] heads;
     delete[] tails;
-#endif
 }
-
-#ifdef MATLAB_MEX_FILE
-mxArray* prpack_base_graph::to_matlab_array() const {
-    const int num_fields = 5;
-    const char* field_names[num_fields] = {"num_vs", "num_es", "num_self_es", "heads", "tails"};
-    mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-    mxSetField(ret, 0, "num_vs", prpack_utils::int_to_matlab_array(num_vs));
-    mxSetField(ret, 0, "num_es", prpack_utils::int_to_matlab_array(num_es));
-    mxSetField(ret, 0, "num_self_es", prpack_utils::int_to_matlab_array(num_self_es));
-    mxSetField(ret, 0, "heads", prpack_utils::int_array_to_matlab_array(num_es, heads));
-    mxSetField(ret, 0, "tails", prpack_utils::int_array_to_matlab_array(num_vs, tails));
-    return ret;
-}
-#endif
 
 void prpack_base_graph::read_smat(FILE* f) {
     // read in header

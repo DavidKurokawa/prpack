@@ -11,20 +11,19 @@ using namespace std;
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-double prpack_utils::get_time()
-{
+double prpack_utils::get_time() {
     LARGE_INTEGER t, freq;
-    QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&t);
-    return (double)t.QuadPart / (double)t.freq;
+    QueryPerformanceFrequency(&freq);
+    return double(t.QuadPart)/double(freq.QuadPart);
 }
 #else
 #include <sys/types.h>
 #include <sys/timeb.h>
 #include <sys/time.h>
-double prpack_utils::get_time()
-{
-    struct timeval t; gettimeofday(&t, 0);
+double prpack_utils::get_time() {
+    struct timeval t;
+    gettimeofday(&t, 0);
     return (t.tv_sec*1.0 + t.tv_usec/1000000.0);
 }
 #endif
