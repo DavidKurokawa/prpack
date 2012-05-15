@@ -1,5 +1,4 @@
 #include "prpack_preprocessed_schur_graph.h"
-#include "prpack_utils.h"
 #include <algorithm>
 #include <cstring>
 using namespace prpack;

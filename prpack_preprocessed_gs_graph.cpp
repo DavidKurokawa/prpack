@@ -1,5 +1,4 @@
 #include "prpack_preprocessed_gs_graph.h"
-#include "prpack_utils.h"
 #include <algorithm>
 using namespace prpack;
 using namespace std;

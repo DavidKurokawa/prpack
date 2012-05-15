@@ -1,5 +1,4 @@
 #include "prpack_preprocessed_scc_graph.h"
-#include "prpack_utils.h"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
