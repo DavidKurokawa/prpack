@@ -26,19 +26,6 @@ namespace prpack {
             static double get_time();
             static void validate(bool condition, const std::string& msg);
             static double* permute(int length, double* a, int* coding);
-#ifdef MATLAB_MEX_FILE
-            static mxArray* int_to_matlab_array(int x);
-            static int matlab_array_to_int(mxArray* a);
-            static mxArray* int_array_to_matlab_array(int length, int* a);
-            static int* matlab_array_to_int_array(mxArray* a);
-            static mxArray* double_to_matlab_array(double x);
-            static double matlab_array_to_double(mxArray* a);
-            static mxArray* double_array_to_matlab_array(int length, double* a);            
-            static double* matlab_array_to_double_array(mxArray* a);
-            static mxArray* ll_to_matlab_array(long long x);
-            static mxArray* string_to_matlab_array(const std::string& s);
-            static mxArray* empty_matlab_array();
-#endif
     };
 
 };

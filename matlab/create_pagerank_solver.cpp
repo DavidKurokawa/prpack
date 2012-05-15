@@ -28,7 +28,5 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     g.tails = tails;
     prpack_solver* solver = new prpack_solver(&g);
     // return a pointer to the pagerank solver
-    mxArray* ret = mxCreateNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL); // TODO handle 32/64
-    *(int*) mxGetData(ret) = reinterpret_cast<int>(solver); // TODO handle 32/64
-    plhs[0] = ret;
+    plhs[0] = solver_to_matlab_array(solver);
 }

@@ -21,7 +21,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     const mxArray* raw_v = prhs[4];
     const mxArray* raw_method = prhs[5];
     // parse variables
-    prpack_solver* solver = reinterpret_cast<prpack_solver*>(*(int*) mxGetData(raw_solver_ptr)); // TODO: handle if this is 32/64
+    prpack_solver* solver = parse_solver(raw_solver_ptr);
     int num_vs = solver->get_num_vs();
     double alpha = parse_alpha(raw_alpha);
     double tol = parse_tol(raw_tol);
@@ -30,8 +30,8 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     string method = parse_method(raw_method);
     // compute pagerank
     prpack_result* res = solver->solve(alpha, tol, u, v, method);
-    // return
-    mxArray* ares = res->to_matlab_array();
+    // return the pagerank vector and stats if necessary
+    mxArray* ares = result_to_matlab_array(res);
     plhs[0] = mxGetField(ares, 0, "x");
     if (nlhs >= 2)
         plhs[1] = ares;

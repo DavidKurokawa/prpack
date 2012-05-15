@@ -1,10 +1,7 @@
 #include <algorithm>
 #include "utils.h"
+using namespace prpack;
 using namespace std;
-
-bool is_int_scalar(const mxArray* a) {
-    return mxIsInt32(a) && mxGetNumberOfElements(a) == 1;
-}
 
 bool is_double_scalar(const mxArray* a) {
     return mxIsDouble(a)
@@ -18,10 +15,6 @@ bool is_vector(const mxArray* a) {
             && min(dims[0], dims[1]) <= 1;
 }
 
-bool is_int_vector(const mxArray* a) {
-    return mxIsInt32(a) && is_vector(a);
-}
-
 bool is_double_vector(const mxArray* a) {
     return mxIsDouble(a)
             && !mxIsComplex(a)
@@ -32,23 +25,10 @@ bool is_string(const mxArray* a) {
     return mxIsChar(a) && is_vector(a);
 }
 
-int parse_num_vs(const mxArray* raw_num_vs) {
-    if (!is_int_scalar(raw_num_vs))
-        mexErrMsgTxt("num_vs must be an int.");
-    int num_vs = *((int*) mxGetData(raw_num_vs));
-    if (num_vs <= 0)
-        mexErrMsgTxt("num_vs must be > 0.");
-    return num_vs;
-}
-
-int parse_heads_tails(int*& heads, int*& tails, const mxArray* raw_heads, const mxArray* raw_tails) {
-    if (!is_int_vector(raw_heads) || !is_int_vector(raw_tails))
-        mexErrMsgTxt("heads and tails must be int vectors.");
-    if (mxGetNumberOfElements(raw_heads) != mxGetNumberOfElements(raw_tails))
-        mexErrMsgTxt("heads and tails must be of the same size.");
-    heads = (int*) mxGetData(raw_heads);
-    tails = (int*) mxGetData(raw_tails);
-    return mxGetNumberOfElements(raw_heads);
+// TODO: handle if this is 32/64
+prpack_solver* parse_solver(const mxArray* raw_solver_ptr) {
+    int solver_ptr_val = *(int*) mxGetData(raw_solver_ptr);
+    return reinterpret_cast<prpack_solver*>(solver_ptr_val);
 }
 
 double parse_alpha(const mxArray* raw_alpha) {
@@ -89,3 +69,52 @@ string parse_method(const mxArray* raw_method) {
     return method;
 }
 
+mxArray* int_to_matlab_array(int x) {
+    mxArray* ret = mxCreateNumericMatrix(1, 1, mxINT32_CLASS, mxREAL);
+    *(int*) mxGetData(ret) = x;
+    return ret;
+}
+
+mxArray* double_to_matlab_array(double x) {
+    return mxCreateDoubleScalar(x);
+}
+
+mxArray* double_array_to_matlab_array(int length, double* a) {
+    mxArray* ret = mxCreateDoubleMatrix(length, 1, mxREAL);
+    double* ret_data = mxGetPr(ret);
+    for (int i = 0; i < length; ++i)
+        ret_data[i] = a[i];
+    return ret;
+}
+
+mxArray* ll_to_matlab_array(long long x) {
+    mxArray* ret = mxCreateNumericMatrix(1, 1, mxINT64_CLASS, mxREAL);
+    *(long long*) mxGetData(ret) = x;
+    return ret;
+}
+
+mxArray* string_to_matlab_array(const string& s) {
+    return mxCreateString(s.c_str());
+}
+
+// TODO: handle if this is 32/64
+mxArray* solver_to_matlab_array(prpack_solver* solver) {
+    mxArray* ret = mxCreateNumericMatrix(1, 1, mxUINT32_CLASS, mxREAL);
+    *(int*) mxGetData(ret) = reinterpret_cast<int>(solver);
+    return ret;
+}
+
+mxArray* result_to_matlab_array(prpack_result* res) {
+    const int num_fields = 8;
+    const char* field_names[num_fields] = {"num_vs", "num_es", "x", "read_time", "preprocess_time", "compute_time", "num_es_touched", "method"};
+    mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
+    mxSetField(ret, 0, "num_vs", int_to_matlab_array(res->num_vs));
+    mxSetField(ret, 0, "num_es", int_to_matlab_array(res->num_es));
+    mxSetField(ret, 0, "x", double_array_to_matlab_array(res->num_vs, res->x));
+    mxSetField(ret, 0, "read_time", double_to_matlab_array(res->read_time));
+    mxSetField(ret, 0, "preprocess_time", double_to_matlab_array(res->preprocess_time));
+    mxSetField(ret, 0, "compute_time", double_to_matlab_array(res->compute_time));
+    mxSetField(ret, 0, "num_es_touched", ll_to_matlab_array(res->num_es_touched));
+    mxSetField(ret, 0, "method", string_to_matlab_array(res->method));
+    return ret;
+}

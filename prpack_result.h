@@ -1,8 +1,5 @@
 #ifndef PRPACK_RESULT
 #define PRPACK_RESULT
-#ifdef MATLAB_MEX_FILE
-#include "mex.h"
-#endif
 #include <string>
 
 namespace prpack {
@@ -24,10 +21,6 @@ namespace prpack {
             prpack_result();
             // destructor
             ~prpack_result();
-            // method
-#ifdef MATLAB_MEX_FILE
-            mxArray* to_matlab_array() const;
-#endif
     };
 
 };

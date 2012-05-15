@@ -1,4 +1,5 @@
 #include "../prpack.h"
+#include "utils.h"
 #include "mex.h"
 using namespace prpack;
 
@@ -13,7 +14,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     // set up raw variables
     const mxArray* raw_solver_ptr = prhs[0];
     // parse variables
-    prpack_solver* solver = reinterpret_cast<prpack_solver*>(*(int*) mxGetData(raw_solver_ptr)); // TODO: handle if this is 32/64
+    prpack_solver* solver = parse_solver(raw_solver_ptr);
     // delete pagerank solver
     delete solver;
 }
