@@ -31,7 +31,7 @@ matlab:
 	cd matlab; make
 
 clean:
-	rm *.o ${PROG} -f
+	$(RM) *.o ${PROG}
 	
 
 .PHONY: all clean test matlab
