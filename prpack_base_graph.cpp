@@ -232,7 +232,7 @@ prpack_base_graph::prpack_base_graph(int nverts, int nedges,
     for (int i = 0; i < num_es; ++i)
         heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
     // clean up
-    free(hs);
-    free(ts);
-    free(osets);
+    delete[] hs;
+    delete[] ts;
+    delete[] osets;
 }

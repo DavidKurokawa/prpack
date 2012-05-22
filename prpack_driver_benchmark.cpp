@@ -278,7 +278,9 @@ void benchmark(int nverts) {
                  << "  ("<< res1->compute_time/res->compute_time << "x) " 
                  << "  " << res->num_es_touched/(double)edges.size() << " eff iters" 
                  << endl;
+            delete res;
         }
+        delete res1;
     }
     
     {
@@ -296,7 +298,9 @@ void benchmark(int nverts) {
                  << "  ("<< res1->compute_time/res->compute_time << "x) " 
                  << "  " << res->num_es_touched/(double)edges.size() << " eff iters" 
                  << endl;
+            delete res;
         }
+        delete res1;
     }
     
     {
@@ -306,6 +310,7 @@ void benchmark(int nverts) {
         cout << "  " << 1 << "-thread compute time = " << res->compute_time << "s" 
                  << "  " << res->num_es_touched/(double)edges.size() << " eff iters" 
                  << endl;
+        delete res;
 
     }
     
