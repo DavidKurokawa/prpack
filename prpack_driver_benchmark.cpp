@@ -282,6 +282,24 @@ void benchmark(int nverts) {
     }
     
     {
+        cout << "method = sgs" << endl;
+        omp_set_num_threads(1);
+        prpack::prpack_result* res1 = solver.solve(0.85, 1.e-10, NULL, NULL, "sgs");
+        cout << "  preprocess time = " << res1->preprocess_time << "s" << endl;
+        cout << "  1-thread compute time = " << res1->compute_time << "s" << endl;
+        for (int t=0; t<ntests; ++t) {
+            int nt = threadseq[t];
+            if (nt > nthreads) { break; }
+            omp_set_num_threads(nt);
+            prpack::prpack_result* res = solver.solve(0.85, 1.e-10, NULL, NULL, "sgs");
+            cout << "  " << nt << "-thread compute time = " << res->compute_time << "s" 
+                 << "  ("<< res1->compute_time/res->compute_time << "x) " 
+                 << "  " << res->num_es_touched/(double)edges.size() << " eff iters" 
+                 << endl;
+        }
+    }
+    
+    {
         cout << "method = gs" << endl;
         prpack::prpack_result* res = solver.solve(0.85, 1.e-10, NULL, NULL, "gs");
         cout << "  preprocess time = " << res->preprocess_time << "s" << endl;
