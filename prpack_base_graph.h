@@ -13,7 +13,7 @@ namespace prpack {
         private:
             // helper methods
             void initialize();
-            void read_smat(std::FILE* f);
+            bool read_smat(std::FILE* f);
             void read_edges(std::FILE* f);
             void read_ascii(std::FILE* f);
         public:
@@ -25,6 +25,7 @@ namespace prpack {
             int* tails;
             // constructors
             prpack_base_graph(prpack_csc* g);
+            prpack_base_graph(prpack_int64_csc* g);
             prpack_base_graph(prpack_csr* g);
             prpack_base_graph(prpack_edge_list* g);
             prpack_base_graph(const std::string& filename, const std::string& format);

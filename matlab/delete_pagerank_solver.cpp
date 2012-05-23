@@ -1,6 +1,7 @@
+#include <mex.h>
+
 #include "../prpack.h"
 #include "utils.h"
-#include "mex.h"
 using namespace prpack;
 
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {

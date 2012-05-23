@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include <limits>
 using namespace prpack;
 using namespace std;
 
@@ -53,8 +54,52 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     delete[] osets;
 }
 
+
+prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
+    initialize();
+    // TODO remove the assert and add better behavior
+    assert(num_vs <= std::numeric_limits<int>::max());
+    num_vs = (int)g->num_vs;
+    num_es = (int)g->num_es;
+    // fill in heads and tails
+    num_self_es = 0;
+    int64_t* hs = g->heads;
+    int64_t* ts = g->tails;
+    tails = new int[num_vs];
+    memset(tails, 0, num_vs*sizeof(tails[0]));
+    for (int h = 0; h < num_vs; ++h) {
+        int start_ti = (int)hs[h];
+        int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
+        for (int ti = start_ti; ti < end_ti; ++ti) {
+            int t = (int)ts[ti];
+            ++tails[t];
+            if (h == t)
+                ++num_self_es;
+        }
+    }
+    for (int i = 0, sum = 0; i < num_vs; ++i) {
+        int temp = sum;
+        sum += tails[i];
+        tails[i] = temp;
+    }
+    heads = new int[num_es];
+    int* osets = new int[num_vs];
+    memset(osets, 0, num_vs*sizeof(osets[0]));
+    for (int h = 0; h < num_vs; ++h) {
+        int start_ti = (int)hs[h];
+        int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
+        for (int ti = start_ti; ti < end_ti; ++ti) {
+            int t = (int)ts[ti];
+            heads[tails[t] + osets[t]++] = h;
+        }
+    }
+    // clean up
+    delete[] osets;
+}
+
 prpack_base_graph::prpack_base_graph(prpack_csr* g) {
     initialize();
+    assert(false);
     // TODO
 }
 
@@ -107,10 +152,13 @@ prpack_base_graph::~prpack_base_graph() {
     delete[] tails;
 }
 
-void prpack_base_graph::read_smat(FILE* f) {
+bool prpack_base_graph::read_smat(FILE* f) {
     // read in header
-    float blah;
-    assert(fscanf(f, "%d %f %d", &num_vs, &blah, &num_es) == 3);
+    int nvs2=0;
+    assert(fscanf(f, "%d %d %d", &num_vs, &nvs2, &num_es) == 3);
+    if (nvs2 != num_vs) {
+        return false;
+    }
     // fill in heads and tails
     num_self_es = 0;
     int* hs = new int[num_es];
@@ -137,6 +185,7 @@ void prpack_base_graph::read_smat(FILE* f) {
     delete[] hs;
     delete[] ts;
     delete[] osets;
+    return true;
 }
 
 void prpack_base_graph::read_edges(FILE* f) {

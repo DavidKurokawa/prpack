@@ -124,6 +124,7 @@ namespace prpack {
         public:
             // constructors
             prpack_solver(prpack_csc* g);
+            prpack_solver(prpack_int64_csc* g);
             prpack_solver(prpack_csr* g);
             prpack_solver(prpack_edge_list* g);
             prpack_solver(prpack_base_graph* g);

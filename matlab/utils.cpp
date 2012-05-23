@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "utils.h"
+
 using namespace prpack;
 using namespace std;
 
@@ -52,7 +53,7 @@ double* parse_uv(int num_vs, const mxArray* raw_uv) {
     if (!is_double_vector(raw_uv))
         mexErrMsgTxt("u and v must be real vectors.");
     mwSize uv_size = mxGetNumberOfElements(raw_uv);
-    if (uv_size != 0 && uv_size != num_vs)
+    if (uv_size != 0 && uv_size != (mwSize)num_vs)
         mexErrMsgTxt("u and v must be the same size as the matrix, or empty.");
     return (uv_size == 0) ? NULL : (double*) mxGetPr(raw_uv);
 }
@@ -106,13 +107,13 @@ mxArray* result_to_matlab_array(prpack_result* res) {
     const int num_fields = 8;
     const char* field_names[num_fields] = {"num_vs", "num_es", "x", "read_time", "preprocess_time", "compute_time", "num_es_touched", "method"};
     mxArray* ret = mxCreateStructMatrix(1, 1, num_fields, field_names);
-    mxSetField(ret, 0, "num_vs", int_to_matlab_array(res->num_vs));
-    mxSetField(ret, 0, "num_es", int_to_matlab_array(res->num_es));
+    mxSetField(ret, 0, "num_vs", double_to_matlab_array((double)res->num_vs));
+    mxSetField(ret, 0, "num_es", double_to_matlab_array((double)res->num_es));
     mxSetField(ret, 0, "x", double_array_to_matlab_array(res->num_vs, res->x));
     mxSetField(ret, 0, "read_time", double_to_matlab_array(res->read_time));
     mxSetField(ret, 0, "preprocess_time", double_to_matlab_array(res->preprocess_time));
     mxSetField(ret, 0, "compute_time", double_to_matlab_array(res->compute_time));
-    mxSetField(ret, 0, "num_es_touched", ll_to_matlab_array(res->num_es_touched));
+    mxSetField(ret, 0, "num_es_touched", double_to_matlab_array((double)res->num_es_touched));
     mxSetField(ret, 0, "method", string_to_matlab_array(res->method));
     return ret;
 }
