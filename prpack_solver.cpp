@@ -17,6 +17,11 @@ prpack_solver::prpack_solver(prpack_csc* g) {
     TIME(read_time, bg = new prpack_base_graph(g));
 }
 
+prpack_solver::prpack_solver(prpack_int64_csc* g) {
+    initialize();
+    TIME(read_time, bg = new prpack_base_graph(g));
+}
+
 prpack_solver::prpack_solver(prpack_csr* g) {
     initialize();
     TIME(read_time, bg = new prpack_base_graph(g));

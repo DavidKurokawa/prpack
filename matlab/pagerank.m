@@ -1,24 +1,26 @@
-function [x, stats] = pagerank(matrix, alpha, tol, u, v, method)
-%PAGERANK Computes the PageRank
-%   Computes the PageRank of the sparse matrix given with the given
-%   parameters.
+function [x, stats] = pagerank(A, varargin)
+%PAGERANK Compute the PageRank vector of a graph
+%
+%   PAGERANK(A) computes the PageRank of a sparse matrix A 
+%   whose non-zero entries indicate edges.  (The values in A are
+%   ignored.) 
+%
+%   Formally, this call corresponds to solving the following linear system:
+%     n=size(A,1); (speye(n)-alpha*A'*spfun(@(x)1./x,diag(sum(A,2))))\ones(n,1)
+%   where alpha = 0.85 and where the solution is renormalized to sum to a 
+%   probability vector.  
+%   
+%   PAGERANK(A, alpha) computes PageRank for any value of 0 <= alpha <= 1.
+%
+%   [x,stats] = PAGERANK(A, alpha, 
 %   Inputs:
-%       matrix = a sparse matrix whose non-zero entries indicate edges (all
-%                entry values are ignored)
+%       A = a sparse matrix whose non-zero entries indicate edges 
+%           (all entry values are ignored)
 %       alpha  = alpha value
 %       tol    = tolerance allowed for error
 %       u      = u vector
 %       v      = v vector
 %       method = [optional] method to use to compute PageRank
 
-prs = pagerank_solver(matrix);
-if (nargin < 4)
-    error('Too few input arguments.');
-elseif (nargin == 5)
-    [x, stats] = prs.solve(alpha, tol, u, v);
-elseif (nargin == 6)
-    [x, stats] = prs.solve(alpha, tol, u, v, method);
-else
-    error('Too many input arguments.');
-
-end
+prs = pagerank_solver(A);
+[x, stats] = prs.solve(varargin{:});

@@ -1,5 +1,5 @@
-#ifndef UTILS
-#define UTILS
+#ifndef PRPACK_MEX_UTILS
+#define PRPACK_MEX_UTILS
 #include "../prpack.h"
 #include "mex.h"
 
@@ -25,4 +25,4 @@ mxArray* string_to_matlab_array(char* s);
 mxArray* solver_to_matlab_array(prpack::prpack_solver* solver);
 mxArray* result_to_matlab_array(prpack::prpack_result* res);
 
-#endif
+#endif /* PRPACK_MEX_UTILS */
