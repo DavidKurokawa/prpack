@@ -166,7 +166,8 @@ bool prpack_base_graph::read_smat(FILE* f) {
     tails = new int[num_vs];
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
-        assert(fscanf(f, "%d %d %f", &hs[i], &ts[i], &blah) == 3);
+        double val;
+        assert(fscanf(f, "%d %d %lf", &hs[i], &ts[i], &val) == 3);
         ++tails[ts[i]];
         if (hs[i] == ts[i])
             ++num_self_es;
