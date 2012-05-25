@@ -57,14 +57,12 @@ double* parse_uv(int num_vs, const mxArray* raw_uv) {
     return (uv_size == 0) ? NULL : (double*) mxGetPr(raw_uv);
 }
 
-string parse_method(const mxArray* raw_method) {
+char* parse_method(const mxArray* raw_method) {
     if (!is_string(raw_method))
         mexErrMsgTxt("method must be a string");
     mwSize method_length = mxGetNumberOfElements(raw_method);
-    char* s = new char[method_length + 1];
-    mxGetString(raw_method, s, method_length + 1);
-    string method(s);
-    delete[] s;
+    char* method = new char[method_length + 1];
+    mxGetString(raw_method, method, method_length + 1);
     return method;
 }
 
@@ -92,8 +90,8 @@ mxArray* ll_to_matlab_array(long long x) {
     return ret;
 }
 
-mxArray* string_to_matlab_array(const string& s) {
-    return mxCreateString(s.c_str());
+mxArray* string_to_matlab_array(char* s) {
+    return mxCreateString(s);
 }
 
 mxArray* solver_to_matlab_array(prpack_solver* solver) {

@@ -8,7 +8,6 @@
 #include "prpack_preprocessed_scc_graph.h"
 #include "prpack_preprocessed_schur_graph.h"
 #include "prpack_result.h"
-#include <string>
 
 // TODO Make this a user configurable variable
 #define PRPACK_SOLVER_MAX_ITERS 1000000
@@ -127,13 +126,13 @@ namespace prpack {
             prpack_solver(prpack_csr* g);
             prpack_solver(prpack_edge_list* g);
             prpack_solver(prpack_base_graph* g);
-            prpack_solver(const std::string& filename, const std::string& format);
+            prpack_solver(const char* filename, const char* format);
             // destructor
             ~prpack_solver();
             // methods
             int get_num_vs();
-            prpack_result* solve(double alpha, double tol, const std::string& method);
-            prpack_result* solve(double alpha, double tol, double* u, double* v, const std::string& method);
+            prpack_result* solve(double alpha, double tol, const char* method);
+            prpack_result* solve(double alpha, double tol, double* u, double* v, const char* method);
     };
 
 };

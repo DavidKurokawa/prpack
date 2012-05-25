@@ -30,3 +30,4 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     // return a pointer to the pagerank solver
     plhs[0] = solver_to_matlab_array(solver);
 }
+

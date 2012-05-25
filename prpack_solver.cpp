@@ -2,6 +2,7 @@
 #include "prpack_utils.h"
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 using namespace prpack;
 using namespace std;
 
@@ -31,7 +32,7 @@ prpack_solver::prpack_solver(prpack_base_graph* g) {
     TIME(read_time, bg = g);
 }
 
-prpack_solver::prpack_solver(const string& filename, const string& format) {
+prpack_solver::prpack_solver(const char* filename, const char* format) {
     initialize();
     TIME(read_time, bg = new prpack_base_graph(filename, format));
 }
@@ -47,15 +48,15 @@ int prpack_solver::get_num_vs() {
     return bg->num_vs;
 }
 
-prpack_result* prpack_solver::solve(double alpha, double tol, const string& method) {
+prpack_result* prpack_solver::solve(double alpha, double tol, const char* method) {
     return solve(alpha, tol, NULL, NULL, method);
 }
 
-prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v, const string& method) {
+prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v, const char* method) {
     double preprocess_time = 0;
     double compute_time = 0;
     prpack_result* ret;
-    if (method == "gs") {
+    if (strcmp(method, "gs") == 0) {
         if (gsg == NULL) {
             TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
         }
@@ -70,8 +71,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 gsg->inv_num_outlinks,
                 u,
                 v));
-        ret->method = "gs";
-    } else if (method == "gserr") {
+        ret->method = const_cast<char*>("gs");
+    } else if (strcmp(method, "gserr") == 0) {
         if (gsg == NULL) {
             TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
         }
@@ -86,8 +87,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 gsg->inv_num_outlinks,
                 u,
                 v));
-        ret->method = "gserr";
-    } else if (method == "sgs" || (method == "" && u == v)) {
+        ret->method = const_cast<char*>("gserr");
+    } else if (strcmp(method, "sgs") == 0 || (strcmp(method, "") == 0 && u == v)) {
         if (sg == NULL) {
             TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
         }
@@ -105,8 +106,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 u,
                 sg->encoding,
                 sg->decoding));
-        ret->method = "sgs";
-    } else if (method == "sgs_uv" || (method == "" && u != v)) {
+        ret->method = const_cast<char*>("sgs");
+    } else if (strcmp(method, "sgs_uv") == 0 || (strcmp(method, "") == 0 && u != v)) {
         if (sg == NULL) {
             TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
         }
@@ -125,8 +126,8 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 v,
                 sg->encoding,
                 sg->decoding));
-        ret->method = "sgs_uv";
-    } else if (method == "sccgs" || (method == "" && u == v)) {
+        ret->method = const_cast<char*>("sgs_uv");
+    } else if (strcmp(method, "sccgs") == 0 || (strcmp(method, "") == 0 && u == v)) {
         if (sccg == NULL) {
             TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
         }
@@ -147,7 +148,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sccg->divisions,
                 sccg->encoding,
                 sccg->decoding));
-        ret->method = "sccgs";
+        ret->method = const_cast<char*>("sccgs");
     } else {
         if (sccg == NULL) {
             TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
@@ -170,7 +171,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sccg->divisions,
                 sccg->encoding,
                 sccg->decoding));
-        ret->method = "sccgs_uv";
+        ret->method = const_cast<char*>("sccgs_uv");
     }
     ret->read_time = read_time;
     ret->preprocess_time = preprocess_time;

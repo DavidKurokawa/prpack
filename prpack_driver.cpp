@@ -110,10 +110,10 @@ int main(int argc, const char** argv) {
     }
 
     // solve
-    prpack_solver solver(in.graph, in.format);
+    prpack_solver solver(in.graph.c_str(), in.format.c_str());
     double* u = read_vector(in.u);
     double* v = (in.u == in.v) ? u : read_vector(in.v);
-    prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method);
+    prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());
     // create output stream for text data
     ostream* out = &cout; // usually, this is cout
     if (in.output == "-") {

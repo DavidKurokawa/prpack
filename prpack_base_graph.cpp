@@ -87,10 +87,12 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(const string& filename, const string& format) {
+prpack_base_graph::prpack_base_graph(const char* filename, const char* format) {
     initialize();
-    FILE* f = fopen(filename.c_str(), "r");
-    string ext = (format == "") ? filename.substr(filename.rfind('.') + 1) : format;
+    FILE* f = fopen(filename, "r");
+    string s(filename);
+    string t(format);
+    string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
     if (ext == "smat")
         read_smat(f);
     else if (ext == "edges" || ext == "eg2")

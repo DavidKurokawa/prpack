@@ -4,7 +4,6 @@
 #include "prpack_csr.h"
 #include "prpack_edge_list.h"
 #include <cstdio>
-#include <string>
 #include <utility>
 
 namespace prpack {
@@ -27,7 +26,7 @@ namespace prpack {
             prpack_base_graph(prpack_csc* g);
             prpack_base_graph(prpack_csr* g);
             prpack_base_graph(prpack_edge_list* g);
-            prpack_base_graph(const std::string& filename, const std::string& format);
+            prpack_base_graph(const char* filename, const char* format);
             prpack_base_graph(int nverts, int nedges, std::pair<int,int>* edges);
             // destructor
             ~prpack_base_graph();
