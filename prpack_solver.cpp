@@ -7,6 +7,7 @@ using namespace prpack;
 using namespace std;
 
 void prpack_solver::initialize() {
+    geg = NULL;
     gsg = NULL;
     sg = NULL;
     sccg = NULL;
@@ -44,6 +45,7 @@ prpack_solver::prpack_solver(const char* filename, const char* format, bool weig
 
 prpack_solver::~prpack_solver() {
     delete bg;
+    delete geg;
     delete gsg;
     delete sg;
     delete sccg;
@@ -60,8 +62,47 @@ prpack_result* prpack_solver::solve(double alpha, double tol, const char* method
 prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double* v, const char* method) {
     double preprocess_time = 0;
     double compute_time = 0;
-    prpack_result* ret;
-    if (strcmp(method, "gs") == 0) {
+    prpack_result* ret = NULL;
+    // decide which method to run
+    string m;
+    if (strcmp(method, "") != 0)
+        m = string(method);
+    else {
+        if (bg->num_vs < 128)
+            m = "ge";
+        else if (sccg != NULL)
+            m = "sccgs";
+        else if (sg != NULL)
+            m = "sg";
+        else
+            m = "sccgs";
+        if (u != v)
+            m += "_uv";
+    }
+    // run the appropriate method
+    if (m == "ge") {
+        if (geg == NULL) {
+            TIME(preprocess_time, geg = new prpack_preprocessed_ge_graph(bg));
+        }
+        TIME(compute_time, ret = solve_via_ge(
+                alpha,
+                tol,
+                geg->num_vs,
+                geg->matrix,
+                u));
+    } else if (m == "ge_uv") {
+        if (geg == NULL) {
+            TIME(preprocess_time, geg = new prpack_preprocessed_ge_graph(bg));
+        }
+        TIME(compute_time, ret = solve_via_ge_uv(
+                alpha,
+                tol,
+                geg->num_vs,
+                geg->matrix,
+                geg->d,
+                u,
+                v));
+    } else if (m == "gs") {
         if (gsg == NULL) {
             TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
         }
@@ -78,8 +119,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 gsg->inv_num_outlinks,
                 u,
                 v));
-        ret->method = const_cast<char*>("gs");
-    } else if (strcmp(method, "gserr") == 0) {
+    } else if (m == "gserr") {
         if (gsg == NULL) {
             TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
         }
@@ -94,8 +134,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 gsg->inv_num_outlinks,
                 u,
                 v));
-        ret->method = const_cast<char*>("gserr");
-    } else if (strcmp(method, "sgs") == 0 || (strcmp(method, "") == 0 && u == v)) {
+    } else if (m == "sgs") {
         if (sg == NULL) {
             TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
         }
@@ -115,8 +154,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 u,
                 sg->encoding,
                 sg->decoding));
-        ret->method = const_cast<char*>("sgs");
-    } else if (strcmp(method, "sgs_uv") == 0 || (strcmp(method, "") == 0 && u != v)) {
+    } else if (m == "sgs_uv") {
         if (sg == NULL) {
             TIME(preprocess_time, sg = new prpack_preprocessed_schur_graph(bg));
         }
@@ -137,8 +175,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 v,
                 sg->encoding,
                 sg->decoding));
-        ret->method = const_cast<char*>("sgs_uv");
-    } else if (strcmp(method, "sccgs") == 0 || (strcmp(method, "") == 0 && u == v)) {
+    } else if (m == "sccgs") {
         if (sccg == NULL) {
             TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
         }
@@ -162,8 +199,7 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sccg->divisions,
                 sccg->encoding,
                 sccg->decoding));
-        ret->method = const_cast<char*>("sccgs");
-    } else {
+    } else if (m == "sccgs_uv") {
         if (sccg == NULL) {
             TIME(preprocess_time, sccg = new prpack_preprocessed_scc_graph(bg));
         }
@@ -188,8 +224,10 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sccg->divisions,
                 sccg->encoding,
                 sccg->decoding));
-        ret->method = const_cast<char*>("sccgs_uv");
+    } else {
+        // TODO: throw exception
     }
+    ret->method = m.c_str();
     ret->read_time = read_time;
     ret->preprocess_time = preprocess_time;
     ret->compute_time = compute_time;
@@ -199,6 +237,75 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
 }
 
 // VARIOUS SOLVING METHODS ////////////////////////////////////////////////////////////////////////
+
+prpack_result* prpack_solver::solve_via_ge(
+        const double alpha,
+        const double tol,
+        const int num_vs,
+        const double* matrix,
+        const double* uv) {
+    prpack_result* ret = new prpack_result();
+    // initialize uv values
+    const double uv_const = 1.0/num_vs;
+    const int uv_exists = (uv) ? 1 : 0;
+    uv = (uv) ? uv : &uv_const;
+    // create matrix A
+    double* A = new double[num_vs*num_vs];
+    for (int i = 0; i < num_vs*num_vs; ++i)
+        A[i] = -alpha*matrix[i];
+    for (int i = 0; i < num_vs*num_vs; i += num_vs + 1)
+        ++A[i];
+    // create vector b
+    double* b = new double[num_vs];
+    for (int i = 0; i < num_vs; ++i)
+        b[i] = uv[uv_exists*i];
+    // solve and normalize
+    ge(num_vs, A, b);
+    normalize(num_vs, b);
+    // clean up and return
+    delete[] A;
+    ret->num_es_touched = -1;
+    ret->x = b;
+    return ret;
+}
+
+prpack_result* prpack_solver::solve_via_ge_uv(
+        const double alpha,
+        const double tol,
+        const int num_vs,
+        const double* matrix,
+        const double* d,
+        const double* u,
+        const double* v) {
+    prpack_result* ret = new prpack_result();
+    // initialize u and v values
+    const double u_const = 1.0/num_vs;
+    const double v_const = 1.0/num_vs;
+    const int u_exists = (u) ? 1 : 0;
+    const int v_exists = (v) ? 1 : 0;
+    u = (u) ? u : &u_const;
+    v = (v) ? v : &v_const;
+    // create matrix A
+    double* A = new double[num_vs*num_vs];
+    for (int i = 0; i < num_vs*num_vs; ++i)
+        A[i] = -alpha*matrix[i];
+    for (int i = 0, inum_vs = 0; i < num_vs; ++i, inum_vs += num_vs)
+        for (int j = 0; j < num_vs; ++j)
+            A[inum_vs + j] -= alpha*u[u_exists*i]*d[j];
+    for (int i = 0; i < num_vs*num_vs; i += num_vs + 1)
+        ++A[i];
+    // create vector b
+    double* b = new double[num_vs];
+    for (int i = 0; i < num_vs; ++i)
+        b[i] = (1 - alpha)*v[v_exists*i];
+    // solve
+    ge(num_vs, A, b);
+    // clean up and return
+    delete[] A;
+    ret->num_es_touched = -1;
+    ret->x = b;
+    return ret;
+}
 
 // Vanilla Gauss-Seidel.
 prpack_result* prpack_solver::solve_via_gs(
@@ -373,7 +480,7 @@ prpack_result* prpack_solver::solve_via_schur_gs(
         double* uv,
         int* encoding,
         int* decoding,
-        bool normalize) {
+        bool should_normalize) {
     prpack_result* ret = new prpack_result();
     const bool weighted = vals != NULL;
     // initialize uv values
@@ -434,14 +541,8 @@ prpack_result* prpack_solver::solve_via_schur_gs(
         for (int i = 0; i < num_vs - num_no_out_vs; ++i)
             x[i] /= inv_num_outlinks[i];
     // normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
-    if (normalize) {
-        double norm = 0;
-        for (int i = 0; i < num_vs; ++i)
-            norm += x[i];
-        norm = 1/norm;
-        for (int i = 0; i < num_vs; ++i)
-            x[i] *= norm;
-    }
+    if (should_normalize)
+        normalize(num_vs, x);
     // return results
     ret->x = prpack_utils::permute(num_vs, x, decoding);
     delete[] x;
@@ -528,7 +629,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
         int* divisions,
         int* encoding,
         int* decoding,
-        bool normalize) {
+        bool should_normalize) {
     prpack_result* ret = new prpack_result();
     const bool weighted = vals_inside != NULL;
     // initialize uv values
@@ -612,14 +713,8 @@ prpack_result* prpack_solver::solve_via_scc_gs(
         for (int i = 0; i < num_vs; ++i)
             x[i] /= inv_num_outlinks[i];
     // normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
-    if (normalize) {
-        double norm = 0;
-        for (int i = 0; i < num_vs; ++i)
-            norm += x[i];
-        norm = 1/norm;
-        for (int i = 0; i < num_vs; ++i)
-            x[i] *= norm;
-    }
+    if (should_normalize)
+        normalize(num_vs, x);
     // return results
     ret->x = prpack_utils::permute(num_vs, x, decoding);
     delete[] x;
@@ -699,6 +794,37 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
 }
 
 // VARIOUS HELPER METHODS /////////////////////////////////////////////////////////////////////////
+
+// Run Gaussian-Elimination (note: this changes A and returns the solution in b)
+void prpack_solver::ge(const int sz, double* A, double* b) {
+    // put into triangular form
+    for (int i = 0, isz = 0; i < sz; ++i, isz += sz)
+        for (int k = 0, ksz = 0; k < i; ++k, ksz += sz)
+            if (A[isz + k] != 0) {
+                const double coeff = A[isz + k]/A[ksz + k];
+                A[isz + k] = 0;
+                for (int j = k + 1; j < sz; ++j)
+                    A[isz + j] -= coeff*A[ksz + j];
+                b[i] -= coeff*b[k];
+            }
+    // backwards substitution
+    for (int i = sz - 1, isz = (sz - 1)*sz; i >= 0; --i, isz -= sz) {
+        for (int j = i + 1; j < sz; ++j)
+            b[i] -= A[isz + j]*b[j];
+        b[i] /= A[isz + i];
+    }
+}
+
+// Normalize a vector to sum to 1.
+void prpack_solver::normalize(const int length, double* x) {
+    double norm = 0, c = 0;
+    for (int i = 0; i < length; ++i) {
+        COMPENSATED_SUM(norm, x[i], c);
+    }
+    norm = 1/norm;
+    for (int i = 0; i < length; ++i)
+        x[i] *= norm;
+}
 
 // Combine u and v results.
 prpack_result* prpack_solver::combine_uv(

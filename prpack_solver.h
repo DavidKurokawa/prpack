@@ -4,6 +4,7 @@
 #include "prpack_csc.h"
 #include "prpack_csr.h"
 #include "prpack_edge_list.h"
+#include "prpack_preprocessed_ge_graph.h"
 #include "prpack_preprocessed_gs_graph.h"
 #include "prpack_preprocessed_scc_graph.h"
 #include "prpack_preprocessed_schur_graph.h"
@@ -20,11 +21,26 @@ namespace prpack {
             // instance variables
             double read_time;
             prpack_base_graph* bg;
+            prpack_preprocessed_ge_graph* geg;
             prpack_preprocessed_gs_graph* gsg;
             prpack_preprocessed_schur_graph* sg;
             prpack_preprocessed_scc_graph* sccg;
             // methods
             void initialize();
+            prpack_result* solve_via_ge(
+                    const double alpha,
+                    const double tol,
+                    const int num_vs,
+                    const double* matrix,
+                    const double* uv);
+            prpack_result* solve_via_ge_uv(
+                    const double alpha,
+                    const double tol,
+                    const int num_vs,
+                    const double* matrix,
+                    const double* d,
+                    const double* u,
+                    const double* v);
             static prpack_result* solve_via_gs(
                     double alpha,
                     double tol,
@@ -65,7 +81,7 @@ namespace prpack {
                     double* uv,
                     int* encoding,
                     int* decoding,
-                    bool normalize = true);
+                    bool should_normalize = true);
             static prpack_result* solve_via_schur_gs_uv(
                     double alpha,
                     double tol,
@@ -103,7 +119,7 @@ namespace prpack {
                     int* divisions,
                     int* encoding,
                     int* decoding,
-                    bool normalize = true);
+                    bool should_normalize = true);
             static prpack_result* solve_via_scc_gs_uv(
                     double alpha,
                     double tol,
@@ -125,6 +141,8 @@ namespace prpack {
                     int* divisions,
                     int* encoding,
                     int* decoding);
+            static void ge(const int sz, double* A, double* b);
+            static void normalize(const int length, double* x);
             static prpack_result* combine_uv(
                     int num_vs,
                     double* d,

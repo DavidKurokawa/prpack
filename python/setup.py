@@ -7,6 +7,7 @@ ext_modules = [Extension(
     name="prpack",
     sources=["prpack.pyx",
              "../prpack_base_graph.cpp",
+             "../prpack_preprocessed_ge_graph.cpp",
              "../prpack_preprocessed_gs_graph.cpp",
              "../prpack_preprocessed_scc_graph.cpp",
              "../prpack_preprocessed_schur_graph.cpp",

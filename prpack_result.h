@@ -14,7 +14,7 @@ namespace prpack {
             double preprocess_time;
             double compute_time;
             long long num_es_touched;
-            char* method;
+            const char* method;
             int converged;
             // constructor
             prpack_result();
