@@ -32,7 +32,9 @@ namespace prpack {
                     int num_es,
                     int* heads,
                     int* tails,
+                    double* vals,
                     double* ii,
+                    double* d,
                     double* inv_num_outlinks,
                     double* u,
                     double* v);
@@ -56,7 +58,9 @@ namespace prpack {
                     int num_es,
                     int* heads,
                     int* tails,
+                    double* vals,
                     double* ii,
+                    double* d,
                     double* inv_num_outlinks,
                     double* uv,
                     int* encoding,
@@ -71,7 +75,9 @@ namespace prpack {
                     int num_es,
                     int* heads,
                     int* tails,
+                    double* vals,
                     double* ii,
+                    double* d,
                     double* inv_num_outlinks,
                     double* u,
                     double* v,
@@ -84,10 +90,13 @@ namespace prpack {
                     int num_es_inside,
                     int* heads_inside,
                     int* tails_inside,
+                    double* vals_inside,
                     int num_es_outside,
                     int* heads_outside,
                     int* tails_outside,
+                    double* vals_outside,
                     double* ii,
+                    double* d,
                     double* inv_num_outlinks,
                     double* uv,
                     int num_comps,
@@ -102,10 +111,13 @@ namespace prpack {
                     int num_es_inside,
                     int* heads_inside,
                     int* tails_inside,
+                    double* vals_inside,
                     int num_es_outside,
                     int* heads_outside,
                     int* tails_outside,
+                    double* vals_outside,
                     double* ii,
+                    double* d,
                     double* inv_num_outlinks,
                     double* u,
                     double* v,
@@ -115,6 +127,7 @@ namespace prpack {
                     int* decoding);
             static prpack_result* combine_uv(
                     int num_vs,
+                    double* d,
                     double* inv_num_outlinks,
                     int* encoding,
                     double alpha,
@@ -127,7 +140,7 @@ namespace prpack {
             prpack_solver(prpack_csr* g);
             prpack_solver(prpack_edge_list* g);
             prpack_solver(prpack_base_graph* g);
-            prpack_solver(const char* filename, const char* format);
+            prpack_solver(const char* filename, const char* format, bool weighted);
             // destructor
             ~prpack_solver();
             // methods

@@ -5,10 +5,10 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
-#include <omp.h>
 using namespace prpack;
 using namespace std;
 
@@ -21,41 +21,64 @@ class input {
         // instance variables
         string graph;
         string format;
+        bool weighted;
         double alpha;
         double tol;
         string u;
         string v;
         string method;
         string output;
-        // constructor (default values can be set here)
-        input() {
+        // constructor
+        input(const int argc, const char** argv) {
+            // default values
             graph = "";
             format = "";
+            weighted = false;
             alpha = 0.85;
             tol = 1e-10;
             u = "";
             v = "";
             method = "";
             output = "";
-        }
-        // methods
-        void parse_arg(string a, string b) {
-            if (a == "-f" || a == "--format")
-                format = b;
-            else if (a == "-a" || a == "--alpha")
-                alpha = atof(b.c_str());
-            else if (a == "-t" || a == "--tol" || a == "--tolerance")
-                tol = atof(b.c_str());
-            else if (a == "-o" || a == "--out" || a == "--output")
-                output = b;
-            else if (a == "-u" || a == "--u")
-                u = b;
-            else if (a == "-v" || a == "--v")
-                v = b;
-            else if (a == "-m" || a == "--method")
-                method = b;
-            else
-                prpack_utils::validate(false, "Error: argument '" + a + "' is not valid");
+            // convenience variables
+            map<string, bool*> bool_flags;
+            bool_flags["-w"] = bool_flags["--weighted"] = &weighted;
+            map<string, double*> double_flags;
+            double_flags["-a"] = double_flags["--alpha"] = &alpha;
+            double_flags["-t"] = double_flags["--tol"] = double_flags["--tolerance"] = &tol;
+            map<string, string*> string_flags;
+            string_flags["-f"] = string_flags["--format"] = &format;
+            string_flags["-u"] = string_flags["--u"] = &u;
+            string_flags["-v"] = string_flags["--v"] = &v;
+            string_flags["-m"] = string_flags["--method"] = &method;
+            string_flags["-o"] = string_flags["--out"] = string_flags["--output"] = &output;
+            // parse args
+            prpack_utils::validate(argc >= 2, "Error: graph must be supplied.");
+            graph = string(argv[1]);
+            for (int i = 2; i < argc; ++i) {
+                string s(argv[i]);
+                if (bool_flags.find(s) != bool_flags.end())
+                    *bool_flags[s] = true;
+                else {
+                    // parse value of parameter s
+                    string t;
+                    if (s.length() >= 3 && s[0] == '-' && s[1] == '-' && s.find('=') != string::npos) {
+                        const int idx = s.find('=');
+                        t = s.substr(idx + 1);
+                        s = s.substr(0, idx);
+                    } else if (s.length() == 2 && s[0] == '-' && i + 1 < argc)
+                        t = string(argv[++i]);
+                    else
+                        prpack_utils::validate(false, "Error: argument '" + s + "' is not valid or does not specify a value.");
+                    // set parameter s to t
+                    if (double_flags.find(s) != double_flags.end())
+                        *double_flags[s] = atof(t.c_str());
+                    else if (string_flags.find(s) != string_flags.end())
+                        *string_flags[s] = t;
+                    else
+                        prpack_utils::validate(false, "Error: argument '" + s + "' is not valid.");
+                }
+            }
         }
 };
 
@@ -84,22 +107,9 @@ void write_vector(double *x, int n, ostream& out) {
     }
 }
 
-int main(int argc, const char** argv) {
+int main(const int argc, const char** argv) {
     // parse command args
-    input in;
-    in.graph = string(argv[1]);
-    for (int i = 2; i < argc; ++i) {
-        string x(argv[i]);
-        int idx = x.find("=");
-        if (idx == (int) string::npos) {
-            prpack_utils::validate(x.length() == 2 && x[0] == '-', "Error: argument '" + x + "' is not valid");
-            prpack_utils::validate(i + 1 < argc, "Error: argument '" + x + "' does not specify value");
-            in.parse_arg(x, string(argv[++i]));
-        } else {
-            prpack_utils::validate(x.length() > 2 && x[0] == '-' && x[1] == '-', "Error: argument '" + x + "' is not valid");
-            in.parse_arg(x.substr(0, idx), x.substr(idx + 1));
-        }
-    }
+    input in(argc, argv);
 
     if (in.graph == "?") {
         benchmark();
@@ -110,7 +120,7 @@ int main(int argc, const char** argv) {
     }
 
     // solve
-    prpack_solver solver(in.graph.c_str(), in.format.c_str());
+    prpack_solver solver(in.graph.c_str(), in.format.c_str(), in.weighted);
     double* u = read_vector(in.u);
     double* v = (in.u == in.v) ? u : read_vector(in.v);
     prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());

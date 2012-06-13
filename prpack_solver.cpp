@@ -37,9 +37,9 @@ prpack_solver::prpack_solver(prpack_base_graph* g) {
     TIME(read_time, bg = g);
 }
 
-prpack_solver::prpack_solver(const char* filename, const char* format) {
+prpack_solver::prpack_solver(const char* filename, const char* format, bool weighted) {
     initialize();
-    TIME(read_time, bg = new prpack_base_graph(filename, format));
+    TIME(read_time, bg = new prpack_base_graph(filename, format, weighted));
 }
 
 prpack_solver::~prpack_solver() {
@@ -72,7 +72,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 gsg->num_es,
                 gsg->heads,
                 gsg->tails,
+                gsg->vals,
                 gsg->ii,
+                gsg->d,
                 gsg->inv_num_outlinks,
                 u,
                 v));
@@ -106,7 +108,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sg->num_es,
                 sg->heads,
                 sg->tails,
+                sg->vals,
                 sg->ii,
+                sg->d,
                 sg->inv_num_outlinks,
                 u,
                 sg->encoding,
@@ -125,7 +129,9 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sg->num_es,
                 sg->heads,
                 sg->tails,
+                sg->vals,
                 sg->ii,
+                sg->d,
                 sg->inv_num_outlinks,
                 u,
                 v,
@@ -143,10 +149,13 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sccg->num_es_inside,
                 sccg->heads_inside,
                 sccg->tails_inside,
+                sccg->vals_inside,
                 sccg->num_es_outside,
                 sccg->heads_outside,
                 sccg->tails_outside,
+                sccg->vals_outside,
                 sccg->ii,
+                sccg->d,
                 sccg->inv_num_outlinks,
                 u,
                 sccg->num_comps,
@@ -165,10 +174,13 @@ prpack_result* prpack_solver::solve(double alpha, double tol, double* u, double*
                 sccg->num_es_inside,
                 sccg->heads_inside,
                 sccg->tails_inside,
+                sccg->vals_inside,
                 sccg->num_es_outside,
                 sccg->heads_outside,
                 sccg->tails_outside,
+                sccg->vals_outside,
                 sccg->ii,
+                sccg->d,
                 sccg->inv_num_outlinks,
                 u,
                 v,
@@ -196,16 +208,19 @@ prpack_result* prpack_solver::solve_via_gs(
         int num_es,
         int* heads,
         int* tails,
+        double* vals,
         double* ii,
+        double* d,
         double* inv_num_outlinks,
         double* u,
         double* v) {
     prpack_result* ret = new prpack_result();
+    const bool weighted = vals != NULL;
     // initialize u and v values
     double u_const = 1.0/num_vs;
     double v_const = 1.0/num_vs;
-    int u_exists = (u) ? 1 : 0;
-    int v_exists = (v) ? 1 : 0;
+    const int u_exists = (u) ? 1 : 0;
+    const int v_exists = (v) ? 1 : 0;
     u = (u) ? u : &u_const;
     v = (v) ? v : &v_const;
     // initialize the eigenvector (and use personalization vector)
@@ -216,35 +231,54 @@ prpack_result* prpack_solver::solve_via_gs(
     double delta = 0;
     // run Gauss-Seidel
     ret->num_es_touched = 0;
-    double err = 1, old_val, new_val, c = 0;
+    double err = 1, c = 0;
     do {
-        // iterate through vertices
-        for (int i = 0; i < num_vs; ++i) {
-            old_val = x[i]/inv_num_outlinks[i];
-            new_val = 0;
-            int start_j = tails[i], end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
-            for (int j = start_j; j < end_j; ++j)
-                // TODO: might want to use compensation summation for large: end_j - start_j
-                new_val += x[heads[j]];
-            new_val = alpha*new_val + (1 - alpha)*v[v_exists*i];
-            if (inv_num_outlinks[i] < 0) {
-                delta -= alpha*old_val;
+        if (weighted) {
+            for (int i = 0; i < num_vs; ++i) {
+                double new_val = 0;
+                const int start_j = tails[i];
+                const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+                for (int j = start_j; j < end_j; ++j)
+                    // TODO: might want to use compensation summation for large: end_j - start_j
+                    new_val += x[heads[j]]*vals[j];
+                new_val = alpha*new_val + (1 - alpha)*v[v_exists*i];
+                delta -= alpha*x[i]*d[i];
                 new_val += delta*u[u_exists*i];
-                new_val /= 1 - alpha*u[u_exists*i];
-                delta += alpha*new_val;
-            } else {
-                new_val += delta*u[u_exists*i];
-                new_val /= 1 - alpha*ii[i];
+                new_val /= 1 - alpha*(d[i]*u[u_exists*i] + (1 - d[i])*ii[i]);
+                delta += alpha*new_val*d[i];
+                COMPENSATED_SUM(err, x[i] - new_val, c);
+                x[i] = new_val;
             }
-            COMPENSATED_SUM(err, old_val - new_val, c);
-            x[i] = new_val*inv_num_outlinks[i];
+        } else {
+            for (int i = 0; i < num_vs; ++i) {
+                double old_val = x[i]/inv_num_outlinks[i];
+                double new_val = 0;
+                const int start_j = tails[i];
+                const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+                for (int j = start_j; j < end_j; ++j)
+                    // TODO: might want to use compensation summation for large: end_j - start_j
+                    new_val += x[heads[j]];
+                new_val = alpha*new_val + (1 - alpha)*v[v_exists*i];
+                if (inv_num_outlinks[i] < 0) {
+                    delta -= alpha*old_val;
+                    new_val += delta*u[u_exists*i];
+                    new_val /= 1 - alpha*u[u_exists*i];
+                    delta += alpha*new_val;
+                } else {
+                    new_val += delta*u[u_exists*i];
+                    new_val /= 1 - alpha*ii[i];
+                }
+                COMPENSATED_SUM(err, old_val - new_val, c);
+                x[i] = new_val*inv_num_outlinks[i];
+            }
         }
         // update iteration index
         ret->num_es_touched += num_es;
     } while (err >= tol);
     // undo inv_num_outlinks transformation
-    for (int i = 0; i < num_vs; ++i)
-        x[i] /= inv_num_outlinks[i];
+    if (!weighted)
+        for (int i = 0; i < num_vs; ++i)
+            x[i] /= inv_num_outlinks[i];
     // return results
     ret->x = x;
     return ret;
@@ -332,21 +366,24 @@ prpack_result* prpack_solver::solve_via_schur_gs(
         int num_es,
         int* heads,
         int* tails,
+        double* vals,
         double* ii,
+        double* d,
         double* inv_num_outlinks,
         double* uv,
         int* encoding,
         int* decoding,
         bool normalize) {
     prpack_result* ret = new prpack_result();
+    const bool weighted = vals != NULL;
     // initialize uv values
     double uv_const = 1.0/num_vs;
-    int uv_exists = (uv) ? 1 : 0;
+    const int uv_exists = (uv) ? 1 : 0;
     uv = (uv) ? prpack_utils::permute(num_vs, uv, encoding) : &uv_const;
     // initialize the eigenvector (and use personalization vector)
     double* x = new double[num_vs];
     for (int i = 0; i < num_vs - num_no_out_vs; ++i)
-        x[i] = uv[uv_exists*i]*inv_num_outlinks[i]/(1 - alpha*ii[i]);
+        x[i] = uv[uv_exists*i]/(1 - alpha*ii[i])*((weighted) ? 1 : inv_num_outlinks[i]);
     // run Gauss-Seidel for the top left part of (I - alpha*P)*x = uv
     ret->num_es_touched = 0;
     double err, c;
@@ -359,17 +396,26 @@ prpack_result* prpack_solver::solve_via_schur_gs(
             double new_val = 0;
             const int start_j = tails[i];
             const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
-            for (int j = start_j; j < end_j; ++j)
-                // TODO: might want to use compensation summation for large: end_j - start_j
-                new_val += x[heads[j]];
-            COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
-            new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
-            x[i] = new_val*inv_num_outlinks[i];
+            if (weighted) {
+                for (int j = start_j; j < end_j; ++j)
+                    // TODO: might want to use compensation summation for large: end_j - start_j
+                    new_val += x[heads[j]]*vals[j];
+                COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
+                new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
+                x[i] = new_val;
+            } else {
+                for (int j = start_j; j < end_j; ++j)
+                    // TODO: might want to use compensation summation for large: end_j - start_j
+                    new_val += x[heads[j]];
+                COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
+                new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
+                x[i] = new_val*inv_num_outlinks[i];
+            }
             num_es_touched += end_j - start_j;
         }
         // update iteration index
         ret->num_es_touched += num_es_touched;
-    } while (err/(1 - alpha) >= tol*(num_vs - num_no_out_vs)/num_vs);
+    } while (err/(1 - alpha) >= tol);
     // solve for the dangling nodes
     int num_es_touched = 0;
     #pragma omp parallel for reduction(+:num_es_touched) schedule(dynamic, 64)
@@ -378,14 +424,15 @@ prpack_result* prpack_solver::solve_via_schur_gs(
         const int start_j = tails[i];
         const int end_j = (i + 1 != num_vs) ? tails[i + 1] : num_es;
         for (int j = start_j; j < end_j; ++j)
-            x[i] += x[heads[j]];
+            x[i] += x[heads[j]]*((weighted) ? vals[j] : 1);
         x[i] = (alpha*x[i] + uv[uv_exists*i])/(1 - alpha*ii[i]);
         num_es_touched += end_j - start_j;
     }
     ret->num_es_touched += num_es_touched;
     // undo inv_num_outlinks transformation
-    for (int i = 0; i < num_vs - num_no_out_vs; ++i)
-        x[i] /= inv_num_outlinks[i];
+    if (!weighted)
+        for (int i = 0; i < num_vs - num_no_out_vs; ++i)
+            x[i] /= inv_num_outlinks[i];
     // normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
     if (normalize) {
         double norm = 0;
@@ -412,7 +459,9 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
         int num_es,
         int* heads,
         int* tails,
+        double* vals,
         double* ii,
+        double* d,
         double* inv_num_outlinks,
         double* u,
         double* v,
@@ -428,7 +477,9 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
             num_es,
             heads,
             tails,
+            vals,
             ii,
+            d,
             inv_num_outlinks,
             u,
             encoding,
@@ -444,14 +495,16 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
             num_es,
             heads,
             tails,
+            vals,
             ii,
+            d,
             inv_num_outlinks,
             v,
             encoding,
             decoding,
             false);
     // combine the u and v cases
-    return combine_uv(num_vs, inv_num_outlinks, encoding, alpha, ret_u, ret_v);
+    return combine_uv(num_vs, d, inv_num_outlinks, encoding, alpha, ret_u, ret_v);
 }
 
 // Gauss-Seidel using strongly connected components.
@@ -462,10 +515,13 @@ prpack_result* prpack_solver::solve_via_scc_gs(
         int num_es_inside,
         int* heads_inside,
         int* tails_inside,
+        double* vals_inside,
         int num_es_outside,
         int* heads_outside,
         int* tails_outside,
+        double* vals_outside,
         double* ii,
+        double* d,
         double* inv_num_outlinks,
         double* uv,
         int num_comps,
@@ -474,6 +530,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
         int* decoding,
         bool normalize) {
     prpack_result* ret = new prpack_result();
+    const bool weighted = vals_inside != NULL;
     // initialize uv values
     double uv_const = 1.0/num_vs;
     int uv_exists = (uv) ? 1 : 0;
@@ -481,7 +538,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
     // initialize the eigenvector
     double* x = new double[num_vs];
     for (int i = 0; i < num_vs; ++i)
-        x[i] = uv[uv_exists*i]*inv_num_outlinks[i]/(1 - alpha*ii[i]);
+        x[i] = uv[uv_exists*i]/(1 - alpha*ii[i])*((weighted) ? 1 : inv_num_outlinks[i]);
     // create x_outside
     double* x_outside = new double[num_vs];
     // run Gauss-Seidel for (I - alpha*P)*x = uv
@@ -496,7 +553,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
             const int start_j = tails_outside[i];
             const int end_j = (i + 1 != num_vs) ? tails_outside[i + 1] : num_es_outside;
             for (int j = start_j; j < end_j; ++j)
-                x_outside[i] += x[heads_outside[j]];
+                x_outside[i] += x[heads_outside[j]]*((weighted) ? vals_outside[j] : 1);
             ret->num_es_touched += end_j - start_j;
         }
         double err, c;
@@ -510,26 +567,39 @@ prpack_result* prpack_solver::solve_via_scc_gs(
                     double new_val = x_outside[i];
                     const int start_j = tails_inside[i];
                     const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-                    for (int j = start_j; j < end_j; ++j)
-                        // TODO: might want to use compensation summation for large: end_j - start_j
-                        new_val += x[heads_inside[j]];
-                    COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
-                    new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
-                    x[i] = new_val*inv_num_outlinks[i];
+                    if (weighted) {
+                        for (int j = start_j; j < end_j; ++j)
+                            // TODO: might want to use compensation summation for large: end_j - start_j
+                            new_val += x[heads_inside[j]]*vals_inside[j];
+                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
+                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
+                    } else {
+                        for (int j = start_j; j < end_j; ++j)
+                            // TODO: might want to use compensation summation for large: end_j - start_j
+                            new_val += x[heads_inside[j]];
+                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
+                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i])*inv_num_outlinks[i];
+                    }
                     num_es_touched += end_j - start_j;
                 }
             } else {
-                // iterate through vertices
                 for (int i = start_comp; i < end_comp; ++i) {
                     double new_val = x_outside[i];
                     const int start_j = tails_inside[i];
                     const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-                    for (int j = start_j; j < end_j; ++j)
-                        // TODO: might want to use compensation summation for large: end_j - start_j
-                        new_val += x[heads_inside[j]];
-                    COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
-                    new_val = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
-                    x[i] = new_val*inv_num_outlinks[i];
+                    if (weighted) {
+                        for (int j = start_j; j < end_j; ++j)
+                            // TODO: might want to use compensation summation for large: end_j - start_j
+                            new_val += x[heads_inside[j]]*vals_inside[j];
+                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
+                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
+                    } else {
+                        for (int j = start_j; j < end_j; ++j)
+                            // TODO: might want to use compensation summation for large: end_j - start_j
+                            new_val += x[heads_inside[j]];
+                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]/inv_num_outlinks[i]), c);
+                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i])*inv_num_outlinks[i];
+                    }
                     num_es_touched += end_j - start_j;
                 }
             }
@@ -538,8 +608,9 @@ prpack_result* prpack_solver::solve_via_scc_gs(
         } while (err/(1 - alpha) >= tol*(end_comp - start_comp)/num_vs);
     }
     // undo inv_num_outlinks transformation
-    for (int i = 0; i < num_vs; ++i)
-        x[i] /= inv_num_outlinks[i];
+    if (!weighted)
+        for (int i = 0; i < num_vs; ++i)
+            x[i] /= inv_num_outlinks[i];
     // normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
     if (normalize) {
         double norm = 0;
@@ -565,10 +636,13 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
         int num_es_inside,
         int* heads_inside,
         int* tails_inside,
+        double* vals_inside,
         int num_es_outside,
         int* heads_outside,
         int* tails_outside,
+        double* vals_outside,
         double* ii,
+        double* d,
         double* inv_num_outlinks,
         double* u,
         double* v,
@@ -584,10 +658,13 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
             num_es_inside,
             heads_inside,
             tails_inside,
+            vals_inside,
             num_es_outside,
             heads_outside,
             tails_outside,
+            vals_outside,
             ii,
+            d,
             inv_num_outlinks,
             u,
             num_comps,
@@ -603,10 +680,13 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
             num_es_inside,
             heads_inside,
             tails_inside,
+            vals_inside,
             num_es_outside,
             heads_outside,
             tails_outside,
+            vals_outside,
             ii,
+            d,
             inv_num_outlinks,
             v,
             num_comps,
@@ -615,7 +695,7 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
             decoding,
             false);
     // combine u and v
-    return combine_uv(num_vs, inv_num_outlinks, encoding, alpha, ret_u, ret_v);
+    return combine_uv(num_vs, d, inv_num_outlinks, encoding, alpha, ret_u, ret_v);
 }
 
 // VARIOUS HELPER METHODS /////////////////////////////////////////////////////////////////////////
@@ -623,16 +703,18 @@ prpack_result* prpack_solver::solve_via_scc_gs_uv(
 // Combine u and v results.
 prpack_result* prpack_solver::combine_uv(
         int num_vs,
+        double* d,
         double* inv_num_outlinks,
         int* encoding,
         double alpha,
         prpack_result* ret_u,
         prpack_result* ret_v) {
     prpack_result* ret = new prpack_result();
+    const bool weighted = d != NULL;
     double delta_u = 0;
     double delta_v = 0;
     for (int i = 0; i < num_vs; ++i) {
-        if (inv_num_outlinks[encoding[i]] < 0) {
+        if ((weighted) ? (d[encoding[i]] == 1) : (inv_num_outlinks[encoding[i]] < 0)) {
             delta_u += ret_u->x[i];
             delta_v += ret_v->x[i];
         }
@@ -648,3 +730,4 @@ prpack_result* prpack_solver::combine_uv(
     delete ret_v;
     return ret;
 }
+

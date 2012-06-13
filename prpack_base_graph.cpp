@@ -12,6 +12,7 @@ using namespace std;
 void prpack_base_graph::initialize() {
     heads = NULL;
     tails = NULL;
+    vals = NULL;
 }
 
 prpack_base_graph::prpack_base_graph(prpack_csc* g) {
@@ -53,7 +54,6 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     // clean up
     delete[] osets;
 }
-
 
 prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     initialize();
@@ -132,44 +132,50 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(const char* filename, const char* format) {
+prpack_base_graph::prpack_base_graph(const char* filename, const char* format, bool weighted) {
     initialize();
     FILE* f = fopen(filename, "r");
     string s(filename);
     string t(format);
     string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
     if (ext == "smat")
-        read_smat(f);
-    else if (ext == "edges" || ext == "eg2")
-        read_edges(f);
-    else if (ext == "graph-txt")
-        read_ascii(f);
-    else
-        prpack_utils::validate(false, "Invalid graph format");
+        read_smat(f, weighted);
+    else {
+        prpack_utils::validate(!weighted, "Error: graph format is not compatible with weighted option.");
+        if (ext == "edges" || ext == "eg2")
+            read_edges(f);
+        else if (ext == "graph-txt")
+            read_ascii(f);
+        else
+            prpack_utils::validate(false, "Error: invalid graph format.");
+    }
     fclose(f);
 }
 
 prpack_base_graph::~prpack_base_graph() {
     delete[] heads;
     delete[] tails;
+    delete[] vals;
 }
 
-bool prpack_base_graph::read_smat(FILE* f) {
+void prpack_base_graph::read_smat(FILE* f, bool weighted) {
     // read in header
-    int nvs2=0;
-    assert(fscanf(f, "%d %d %d", &num_vs, &nvs2, &num_es) == 3);
-    if (nvs2 != num_vs) {
-        return false;
-    }
+    double blah;
+    assert(fscanf(f, "%d %lf %d", &num_vs, &blah, &num_es) == 3);
     // fill in heads and tails
     num_self_es = 0;
     int* hs = new int[num_es];
     int* ts = new int[num_es];
+    heads = new int[num_es];
     tails = new int[num_vs];
+    double* vs = NULL;
+    if (weighted) {
+        vs = new double[num_es];
+        vals = new double[num_es];
+    }
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
-        double val;
-        assert(fscanf(f, "%d %d %lf", &hs[i], &ts[i], &val) == 3);
+        assert(fscanf(f, "%d %d %lf", &hs[i], &ts[i], &((weighted) ? vs[i] : blah)) == 3);
         ++tails[ts[i]];
         if (hs[i] == ts[i])
             ++num_self_es;
@@ -179,16 +185,19 @@ bool prpack_base_graph::read_smat(FILE* f) {
         sum += tails[i];
         tails[i] = temp;
     }
-    heads = new int[num_es];
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
-    for (int i = 0; i < num_es; ++i)
-        heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
+    for (int i = 0; i < num_es; ++i) {
+        int idx = tails[ts[i]] + osets[ts[i]]++;
+        heads[idx] = hs[i];
+        if (weighted)
+            vals[idx] = vs[i];
+    }
     // clean up
     delete[] hs;
     delete[] ts;
+    delete[] vs;
     delete[] osets;
-    return true;
 }
 
 void prpack_base_graph::read_edges(FILE* f) {
@@ -286,3 +295,4 @@ prpack_base_graph::prpack_base_graph(int nverts, int nedges,
     delete[] ts;
     delete[] osets;
 }
+
