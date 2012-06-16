@@ -28,7 +28,7 @@ double prpack_utils::get_time() {
 #endif
 
 // Fails and outputs 'msg' if 'condition' is false.
-void prpack_utils::validate(bool condition, const string& msg) {
+void prpack_utils::validate(const bool condition, const string& msg) {
     if (!condition) {
         cerr << msg << endl;
         assert(condition);
@@ -36,9 +36,10 @@ void prpack_utils::validate(bool condition, const string& msg) {
 }
 
 // Permute a vector.
-double* prpack_utils::permute(int length, double* a, int* coding) {
+double* prpack_utils::permute(const int length, const double* a, const int* coding) {
     double* ret = new double[length];
     for (int i = 0; i < length; ++i)
         ret[coding[i]] = a[i];
     return ret;
 }
+

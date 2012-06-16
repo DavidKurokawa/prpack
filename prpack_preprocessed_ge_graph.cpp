@@ -8,7 +8,7 @@ void prpack_preprocessed_ge_graph::initialize() {
     d = NULL;
 }
 
-void prpack_preprocessed_ge_graph::initialize_weighted(prpack_base_graph* bg) {
+void prpack_preprocessed_ge_graph::initialize_weighted(const prpack_base_graph* bg) {
     // initialize d
     fill(d, d + num_vs, 1);
     // fill in the matrix
@@ -20,7 +20,7 @@ void prpack_preprocessed_ge_graph::initialize_weighted(prpack_base_graph* bg) {
     }
 }
 
-void prpack_preprocessed_ge_graph::initialize_unweighted(prpack_base_graph* bg) {
+void prpack_preprocessed_ge_graph::initialize_unweighted(const prpack_base_graph* bg) {
     // fill in the matrix
     for (int i = 0, inum_vs = 0; i < num_vs; ++i, inum_vs += num_vs) {
         const int start_j = bg->tails[i];
@@ -44,9 +44,10 @@ void prpack_preprocessed_ge_graph::initialize_unweighted(prpack_base_graph* bg) 
     }
 }
 
-prpack_preprocessed_ge_graph::prpack_preprocessed_ge_graph(prpack_base_graph* bg) {
+prpack_preprocessed_ge_graph::prpack_preprocessed_ge_graph(const prpack_base_graph* bg) {
     initialize();
     num_vs = bg->num_vs;
+    num_es = bg->num_es;
     matrix = new double[num_vs*num_vs];
     d = new double[num_vs];
     fill(matrix, matrix + num_vs*num_vs, 0);

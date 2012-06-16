@@ -15,7 +15,7 @@ void prpack_base_graph::initialize() {
     vals = NULL;
 }
 
-prpack_base_graph::prpack_base_graph(prpack_csc* g) {
+prpack_base_graph::prpack_base_graph(const prpack_csc* g) {
     initialize();
     num_vs = g->num_vs;
     num_es = g->num_es;
@@ -26,17 +26,17 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     tails = new int[num_vs];
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = hs[h];
-        int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
+        const int start_ti = hs[h];
+        const int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = ts[ti];
+            const int t = ts[ti];
             ++tails[t];
             if (h == t)
                 ++num_self_es;
         }
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
@@ -44,10 +44,10 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = hs[h];
-        int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
+        const int start_ti = hs[h];
+        const int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = ts[ti];
+            const int t = ts[ti];
             heads[tails[t] + osets[t]++] = h;
         }
     }
@@ -55,7 +55,7 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
+prpack_base_graph::prpack_base_graph(const prpack_int64_csc* g) {
     initialize();
     // TODO remove the assert and add better behavior
     assert(num_vs <= std::numeric_limits<int>::max());
@@ -68,17 +68,17 @@ prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     tails = new int[num_vs];
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = (int)hs[h];
-        int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
+        const int start_ti = (int)hs[h];
+        const int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = (int)ts[ti];
+            const int t = (int)ts[ti];
             ++tails[t];
             if (h == t)
                 ++num_self_es;
         }
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
@@ -86,10 +86,10 @@ prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = (int)hs[h];
-        int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
+        const int start_ti = (int)hs[h];
+        const int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = (int)ts[ti];
+            const int t = (int)ts[ti];
             heads[tails[t] + osets[t]++] = h;
         }
     }
@@ -97,13 +97,13 @@ prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(prpack_csr* g) {
+prpack_base_graph::prpack_base_graph(const prpack_csr* g) {
     initialize();
     assert(false);
     // TODO
 }
 
-prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
+prpack_base_graph::prpack_base_graph(const prpack_edge_list* g) {
     initialize();
     num_vs = g->num_vs;
     num_es = g->num_es;
@@ -119,7 +119,7 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
             ++num_self_es;
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
@@ -132,12 +132,12 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(const char* filename, const char* format, bool weighted) {
+prpack_base_graph::prpack_base_graph(const char* filename, const char* format, const bool weighted) {
     initialize();
     FILE* f = fopen(filename, "r");
-    string s(filename);
-    string t(format);
-    string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
+    const string s(filename);
+    const string t(format);
+    const string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
     if (ext == "smat")
         read_smat(f, weighted);
     else {
@@ -158,7 +158,7 @@ prpack_base_graph::~prpack_base_graph() {
     delete[] vals;
 }
 
-void prpack_base_graph::read_smat(FILE* f, bool weighted) {
+void prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     // read in header
     double blah;
     assert(fscanf(f, "%d %lf %d", &num_vs, &blah, &num_es) == 3);
@@ -181,14 +181,14 @@ void prpack_base_graph::read_smat(FILE* f, bool weighted) {
             ++num_self_es;
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
     for (int i = 0; i < num_es; ++i) {
-        int idx = tails[ts[i]] + osets[ts[i]]++;
+        const int idx = tails[ts[i]] + osets[ts[i]]++;
         heads[idx] = hs[i];
         if (weighted)
             vals[idx] = vs[i];
@@ -205,7 +205,7 @@ void prpack_base_graph::read_edges(FILE* f) {
     int h, t;
     num_es = num_self_es = 0;
     while (fscanf(f, "%d %d", &h, &t) == 2) {
-        int m = (h < t) ? t : h;
+        const int m = (h < t) ? t : h;
         if ((int) al.size() < m + 1)
             al.resize(m + 1);
         al[t].push_back(h);
@@ -238,7 +238,7 @@ void prpack_base_graph::read_ascii(FILE* f) {
                     line_ended = s[i] == '\n';
                     if (i != 0) {
                         s[i] = '\0';
-                        int t = atoi(s);
+                        const int t = atoi(s);
                         al[t].push_back(h);
                         ++num_es;
                         if (h == t)

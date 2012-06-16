@@ -1,4 +1,5 @@
 #include "prpack_utils.h"
+#include "prpack_result.h"
 #include "prpack_solver.h"
 #include <algorithm>
 #include <cstdio>
@@ -19,6 +20,7 @@ void benchmark(int numverts=200000);
 class input {
     public:
         // instance variables
+        bool help;
         string graph;
         string format;
         bool weighted;
@@ -31,6 +33,7 @@ class input {
         // constructor
         input(const int argc, const char** argv) {
             // default values
+            help = false;
             graph = "";
             format = "";
             weighted = false;
@@ -43,6 +46,7 @@ class input {
             // convenience variables
             map<string, bool*> bool_flags;
             bool_flags["-w"] = bool_flags["--weighted"] = &weighted;
+            bool_flags["-h"] = bool_flags["--help"] = &help;
             map<string, double*> double_flags;
             double_flags["-a"] = double_flags["--alpha"] = &alpha;
             double_flags["-t"] = double_flags["--tol"] = double_flags["--tolerance"] = &tol;
@@ -55,6 +59,10 @@ class input {
             // parse args
             prpack_utils::validate(argc >= 2, "Error: graph must be supplied.");
             graph = string(argv[1]);
+            if (graph == "-h" || graph == "--help") {
+                help = true;
+                return;
+            }
             for (int i = 2; i < argc; ++i) {
                 string s(argv[i]);
                 if (bool_flags.find(s) != bool_flags.end())
@@ -81,6 +89,23 @@ class input {
             }
         }
 };
+
+// Prints out the help menu
+void print_help() {
+    string msg = "";
+    msg += "Usage: prpack_driver GRAPH [options]\n";
+    msg += "Options:\n";
+    msg += "  -a ALPHA, --alpha=ALPHA             Solve with ALPHA value (default = 0.85).\n";
+    msg += "  -f FORMAT, --format=FORMAT          Read GRAPH as a FORMAT file (default = use extension of GRAPH).\n";
+    msg += "  -h, --help                          Print out this help menu.\n";
+    msg += "  -m METHOD, --method=METHOD          Solve via METHOD (default = chosen based on properties of GRAPH).\n";
+    msg += "  -o OUT, --out=OUT, --output=OUT     File to output solution (default = standard out).\n";
+    msg += "  -t TOL, --tol=TOL, --tolerance=TOL  Ensure 1-norm error < TOL (default = 1e-10).\n";
+    msg += "  -u U, --u=U                         Solve with U value (default = uniform vector).\n";
+    msg += "  -v V, --v=V                         Solve with V value (default = uniform vector).\n";
+    msg += "  -w, --weighted                      Solve a weighted problem (default = false).\n";
+    printf("%s", msg.c_str());
+}
 
 double* read_vector(const string& filename) {
     if (filename == "")
@@ -110,6 +135,10 @@ void write_vector(double *x, int n, ostream& out) {
 int main(const int argc, const char** argv) {
     // parse command args
     input in(argc, argv);
+    if (in.help) {
+        print_help();
+        return 0;
+    }
 
     if (in.graph == "?") {
         benchmark();
@@ -121,9 +150,9 @@ int main(const int argc, const char** argv) {
 
     // solve
     prpack_solver solver(in.graph.c_str(), in.format.c_str(), in.weighted);
-    double* u = read_vector(in.u);
-    double* v = (in.u == in.v) ? u : read_vector(in.v);
-    prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());
+    const double* u = read_vector(in.u);
+    const double* v = (in.u == in.v) ? u : read_vector(in.v);
+    const prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());
     // create output stream for text data
     ostream* out = &cout; // usually, this is cout
     if (in.output == "-") {

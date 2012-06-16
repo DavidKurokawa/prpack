@@ -10,15 +10,17 @@ namespace prpack {
         private:
             // helper methods
             void initialize();
-            void initialize_weighted(prpack_base_graph* bg);
-            void initialize_unweighted(prpack_base_graph* bg);
+            void initialize_weighted(const prpack_base_graph* bg);
+            void initialize_unweighted(const prpack_base_graph* bg);
         public:
             // instance variables
             int* heads;
             int* tails;
             double* vals;
+            double* ii;
+            double* num_outlinks;
             // constructors
-            prpack_preprocessed_gs_graph(prpack_base_graph* bg);
+            prpack_preprocessed_gs_graph(const prpack_base_graph* bg);
             // destructor
             ~prpack_preprocessed_gs_graph();
     };

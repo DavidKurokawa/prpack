@@ -12,7 +12,7 @@ namespace prpack {
         private:
             // helper methods
             void initialize();
-            void read_smat(std::FILE* f, bool weighted);
+            void read_smat(std::FILE* f, const bool weighted);
             void read_edges(std::FILE* f);
             void read_ascii(std::FILE* f);
         public:
@@ -24,11 +24,11 @@ namespace prpack {
             int* tails;
             double* vals;
             // constructors
-            prpack_base_graph(prpack_csc* g);
-            prpack_base_graph(prpack_int64_csc* g);
-            prpack_base_graph(prpack_csr* g);
-            prpack_base_graph(prpack_edge_list* g);
-            prpack_base_graph(const char* filename, const char* format, bool weighted);
+            prpack_base_graph(const prpack_csc* g);
+            prpack_base_graph(const prpack_int64_csc* g);
+            prpack_base_graph(const prpack_csr* g);
+            prpack_base_graph(const prpack_edge_list* g);
+            prpack_base_graph(const char* filename, const char* format, const bool weighted);
             prpack_base_graph(int nverts, int nedges, std::pair<int,int>* edges);
             // destructor
             ~prpack_base_graph();

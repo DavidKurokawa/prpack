@@ -24,8 +24,8 @@ namespace prpack {
     class prpack_utils {
         public:
             static double get_time();
-            static void validate(bool condition, const std::string& msg);
-            static double* permute(int length, double* a, int* coding);
+            static void validate(const bool condition, const std::string& msg);
+            static double* permute(const int length, const double* a, const int* coding);
     };
 
 };

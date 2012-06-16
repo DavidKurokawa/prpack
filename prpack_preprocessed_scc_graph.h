@@ -10,8 +10,8 @@ namespace prpack {
         private:
             // helper methods
             void initialize();
-            void initialize_weighted(prpack_base_graph* bg);
-            void initialize_unweighted(prpack_base_graph* bg);
+            void initialize_weighted(const prpack_base_graph* bg);
+            void initialize_unweighted(const prpack_base_graph* bg);
         public:
             // instance variables
             int num_es_inside;
@@ -22,12 +22,14 @@ namespace prpack {
             int* heads_outside;
             int* tails_outside;
             double* vals_outside;
+            double* ii;
+            double* num_outlinks;
             int num_comps;
             int* divisions;
             int* encoding;
             int* decoding;
             // constructors
-            prpack_preprocessed_scc_graph(prpack_base_graph* bg);
+            prpack_preprocessed_scc_graph(const prpack_base_graph* bg);
             // destructor
             ~prpack_preprocessed_scc_graph();
     };

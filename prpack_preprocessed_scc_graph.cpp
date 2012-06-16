@@ -14,13 +14,13 @@ void prpack_preprocessed_scc_graph::initialize() {
     vals_outside = NULL;
     ii = NULL;
     d = NULL;
-    inv_num_outlinks = NULL;
+    num_outlinks = NULL;
     divisions = NULL;
     encoding = NULL;
     decoding = NULL;
 }
 
-void prpack_preprocessed_scc_graph::initialize_weighted(prpack_base_graph* bg) {
+void prpack_preprocessed_scc_graph::initialize_weighted(const prpack_base_graph* bg) {
     vals_inside = new double[num_es];
     vals_outside = new double[num_es];
     d = new double[num_vs];
@@ -56,9 +56,9 @@ void prpack_preprocessed_scc_graph::initialize_weighted(prpack_base_graph* bg) {
     }
 }
 
-void prpack_preprocessed_scc_graph::initialize_unweighted(prpack_base_graph* bg) {
-    inv_num_outlinks = new double[num_vs];
-    fill(inv_num_outlinks, inv_num_outlinks + num_vs, 0);
+void prpack_preprocessed_scc_graph::initialize_unweighted(const prpack_base_graph* bg) {
+    num_outlinks = new double[num_vs];
+    fill(num_outlinks, num_outlinks + num_vs, 0);
     for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
         const int start_i = divisions[comp_i];
         const int end_i = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
@@ -79,17 +79,18 @@ void prpack_preprocessed_scc_graph::initialize_unweighted(prpack_base_graph* bg)
                     else
                         heads_outside[num_es_outside++] = h;
                 }
-                ++inv_num_outlinks[h];
+                ++num_outlinks[h];
             }
         }
     }
     for (int i = 0; i < num_vs; ++i) {
-        inv_num_outlinks[i] = (inv_num_outlinks[i] == 0) ? -1 : 1/inv_num_outlinks[i];
-        ii[i] *= inv_num_outlinks[i];
+        if (num_outlinks[i] == 0)
+            num_outlinks[i] = -1;
+        ii[i] /= num_outlinks[i];
     }
 }
 
-prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* bg) {
+prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(const prpack_base_graph* bg) {
     initialize();
     // initialize instance variables
     num_vs = bg->num_vs;
@@ -117,7 +118,7 @@ prpack_preprocessed_scc_graph::prpack_preprocessed_scc_graph(prpack_base_graph* 
         cs2[0] = bg->tails[root];
         // dfs
         while (csz) {
-            int p = cs1[csz - 1]; // node we're dfs-ing on
+            const int p = cs1[csz - 1]; // node we're dfs-ing on
             int& it = cs2[csz - 1]; // iteration of the for loop
             if (it == bg->tails[p]) {
                 low[p] = num[p] = mn++;
@@ -193,7 +194,7 @@ prpack_preprocessed_scc_graph::~prpack_preprocessed_scc_graph() {
     delete[] vals_outside;
     delete[] ii;
     delete[] d;
-    delete[] inv_num_outlinks;
+    delete[] num_outlinks;
     delete[] divisions;
     delete[] encoding;
     delete[] decoding;
