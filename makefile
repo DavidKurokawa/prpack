@@ -1,5 +1,8 @@
+IGRAPH_SUPPORT = 1
+
 CXX = g++
 CXXFLAGS = -Wall -O3 -fopenmp 
+LDFLAGS =
 OBJS = prpack_utils.o \
     prpack_base_graph.o \
     prpack_preprocessed_ge_graph.o \
@@ -12,10 +15,16 @@ OBJS = prpack_utils.o \
     prpack_driver_benchmark.o
 PROG = prpack_driver
 
+ifeq ($(IGRAPH_SUPPORT),1)
+	OBJS += prpack_igraph_graph.o
+	CXXFLAGS += $(shell pkg-config igraph --cflags)
+	LDFLAGS += $(shell pkg-config igraph --libs)
+endif
+
 all: ${PROG}
 	
 ${PROG}: ${OBJS}
-	${CXX} ${CXXFLAGS} -o $@ ${OBJS}
+	${CXX} ${CXXFLAGS} -o $@ ${OBJS} ${LDFLAGS}
 	
 test: $(PROG)
 	./prpack_driver data/jazz.smat --output=- 2>/dev/null | \

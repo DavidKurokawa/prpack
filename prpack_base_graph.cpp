@@ -15,6 +15,11 @@ void prpack_base_graph::initialize() {
     vals = NULL;
 }
 
+prpack_base_graph::prpack_base_graph() {
+	initialize();
+	num_vs = num_es = 0;
+}
+
 prpack_base_graph::prpack_base_graph(const prpack_csc* g) {
     initialize();
     num_vs = g->num_vs;

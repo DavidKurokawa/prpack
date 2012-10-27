@@ -24,6 +24,7 @@ namespace prpack {
             int* tails;
             double* vals;
             // constructors
+            prpack_base_graph();    // only to support inheritance
             prpack_base_graph(const prpack_csc* g);
             prpack_base_graph(const prpack_int64_csc* g);
             prpack_base_graph(const prpack_csr* g);
