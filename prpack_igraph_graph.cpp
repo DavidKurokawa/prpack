@@ -25,7 +25,7 @@ prpack_igraph_graph::prpack_igraph_graph(const igraph_t* g, const igraph_vector_
     }
 
     // Allocate memory for heads and tails
-    heads = new int[num_es];
+    p_head = heads = new int[num_es];
     tails = new int[num_vs];
     memset(tails, 0, num_vs * sizeof(tails[0]));
 
@@ -35,7 +35,6 @@ prpack_igraph_graph::prpack_igraph_graph(const igraph_t* g, const igraph_vector_
 
 		// Add the edges
 		igraph_eit_create(g, es, &eit);
-		p_head = heads;
 		while (!IGRAPH_EIT_END(eit)) {
 			eid = IGRAPH_EIT_GET(eit);
 			IGRAPH_EIT_NEXT(eit);
@@ -79,10 +78,10 @@ prpack_igraph_graph::prpack_igraph_graph(const igraph_t* g, const igraph_vector_
 			// TODO: should loop edges be added in both directions?
 			for (j = 0; j < temp; j++) {
 				*p_head = IGRAPH_OTHER(g, VECTOR(neis)[j], i);
-				++p_head;
-				if (i == j) {
+				if (i == *p_head) {
 					num_self_es++;
 				}
+				++p_head;
 			}
 			if (weights != 0) {
 				for (j = 0; j < temp; j++) {
@@ -104,6 +103,7 @@ prpack_igraph_graph::prpack_igraph_graph(const igraph_t* g, const igraph_vector_
     }
 
 	// Debug
+    /*
 	printf("Heads:");
 	for (i = 0; i < num_es; ++i) {
 		printf(" %d", heads[i]);
@@ -122,5 +122,6 @@ prpack_igraph_graph::prpack_igraph_graph(const igraph_t* g, const igraph_vector_
 		printf("\n");
 	}
 	printf("===========================\n");
+    */
 }
 
