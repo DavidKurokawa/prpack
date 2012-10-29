@@ -6,11 +6,13 @@
 
 namespace prpack {
 
-    class prpack_igraph_graph : prpack_base_graph {
+    class prpack_igraph_graph : public prpack_base_graph {
 
         public:
             // constructors
-            prpack_igraph_graph(igraph_t* g, const igraph_vector_t* weights = 0);
+            explicit prpack_igraph_graph(const igraph_t* g,
+					const igraph_vector_t* weights = 0,
+					igraph_bool_t directed = true);
     };
 
 };

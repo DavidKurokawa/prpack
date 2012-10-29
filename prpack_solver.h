@@ -25,6 +25,7 @@ namespace prpack {
             prpack_preprocessed_gs_graph* gsg;
             prpack_preprocessed_schur_graph* sg;
             prpack_preprocessed_scc_graph* sccg;
+			bool owns_bg;
             // methods
             void initialize();
             static prpack_result* solve_via_ge(
@@ -157,7 +158,7 @@ namespace prpack {
             prpack_solver(const prpack_int64_csc* g);
             prpack_solver(const prpack_csr* g);
             prpack_solver(const prpack_edge_list* g);
-            prpack_solver(prpack_base_graph* g);
+            prpack_solver(prpack_base_graph* g, bool owns_bg=true);
             prpack_solver(const char* filename, const char* format, const bool weighted);
             // destructor
             ~prpack_solver();

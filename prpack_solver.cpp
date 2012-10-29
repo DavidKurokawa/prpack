@@ -11,6 +11,7 @@ void prpack_solver::initialize() {
     gsg = NULL;
     sg = NULL;
     sccg = NULL;
+	owns_bg = true;
 }
 
 prpack_solver::prpack_solver(const prpack_csc* g) {
@@ -33,8 +34,9 @@ prpack_solver::prpack_solver(const prpack_edge_list* g) {
     TIME(read_time, bg = new prpack_base_graph(g));
 }
 
-prpack_solver::prpack_solver(prpack_base_graph* g) {
+prpack_solver::prpack_solver(prpack_base_graph* g, bool owns_bg) {
     initialize();
+	this->owns_bg = owns_bg;
     TIME(read_time, bg = g);
 }
 
@@ -44,7 +46,9 @@ prpack_solver::prpack_solver(const char* filename, const char* format, const boo
 }
 
 prpack_solver::~prpack_solver() {
-    delete bg;
+	if (owns_bg) {
+		delete bg;
+	}
     delete geg;
     delete gsg;
     delete sg;
