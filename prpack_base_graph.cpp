@@ -143,16 +143,18 @@ prpack_base_graph::prpack_base_graph(const char* filename, const char* format, c
     const string s(filename);
     const string t(format);
     const string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
-    if (ext == "smat")
+    if (ext == "smat") {
         read_smat(f, weighted);
-    else {
-        prpack_utils::validate(!weighted, "Error: graph format is not compatible with weighted option.");
-        if (ext == "edges" || ext == "eg2")
+    } else {
+        prpack_utils::validate(!weighted, 
+            "Error: graph format is not compatible with weighted option.");
+        if (ext == "edges" || ext == "eg2") {
             read_edges(f);
-        else if (ext == "graph-txt")
+        } else if (ext == "graph-txt") {
             read_ascii(f);
-        else
+        } else {
             prpack_utils::validate(false, "Error: invalid graph format.");
+        }
     }
     fclose(f);
 }
@@ -165,8 +167,8 @@ prpack_base_graph::~prpack_base_graph() {
 
 void prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     // read in header
-    double blah;
-    assert(fscanf(f, "%d %lf %d", &num_vs, &blah, &num_es) == 3);
+    double ignore = 0.0;
+    assert(fscanf(f, "%d %lf %d", &num_vs, &ignore, &num_es) == 3);
     // fill in heads and tails
     num_self_es = 0;
     int* hs = new int[num_es];
@@ -180,7 +182,8 @@ void prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     }
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
-        assert(fscanf(f, "%d %d %lf", &hs[i], &ts[i], &((weighted) ? vs[i] : blah)) == 3);
+        assert(fscanf(f, "%d %d %lf", 
+            &hs[i], &ts[i], &((weighted) ? vs[i] : ignore)) == 3);
         ++tails[ts[i]];
         if (hs[i] == ts[i])
             ++num_self_es;

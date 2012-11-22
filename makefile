@@ -1,7 +1,7 @@
 IGRAPH_SUPPORT ?= 0
 
 CXX = g++
-CXXFLAGS = -Wall -O3 -fopenmp 
+CXXFLAGS = -Wall -g -fopenmp 
 LDFLAGS =
 OBJS = prpack_utils.o \
     prpack_base_graph.o \
@@ -33,6 +33,10 @@ test: $(PROG)
 	  python test/checkprvec.py data/jazz.smat -
 	./prpack_driver data/jazz.smat --output=- -m sccgs 2>/dev/null| \
 	  python test/checkprvec.py data/jazz.smat - 
+	./prpack_driver data/power.smat -w --output=- -m sccgs 2>/dev/null| \
+	  python test/checkprvec.py data/power.smat - 
+	./prpack_driver data/netscience.smat -w --output=- -m sccgs 2>/dev/null| \
+	  python test/checkprvec.py data/netscience.smat - 
 	  
 perf: $(PROG)
 	./prpack_driver ?

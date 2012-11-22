@@ -33,6 +33,8 @@ namespace prpack {
             prpack_base_graph(int nverts, int nedges, std::pair<int,int>* edges);
             // destructor
             ~prpack_base_graph();
+            // operations
+            void normalize_weights();
     };
 
 };
