@@ -1,4 +1,4 @@
-IGRAPH_SUPPORT = 1
+IGRAPH_SUPPORT ?= 0
 
 CXX = g++
 CXXFLAGS = -Wall -O3 -fopenmp 
@@ -17,7 +17,7 @@ PROG = prpack_driver
 
 ifeq ($(IGRAPH_SUPPORT),1)
 	OBJS += prpack_igraph_graph.o
-	CXXFLAGS += $(shell pkg-config igraph --cflags)
+	CXXFLAGS += $(shell pkg-config igraph --cflags) -DPRPACK_IGRAPH_SUPPORT
 	LDFLAGS += $(shell pkg-config igraph --libs)
 endif
 
