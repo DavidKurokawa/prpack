@@ -24,6 +24,7 @@ class input {
         string graph;
         string format;
         bool weighted;
+        bool raw_weights;
         double alpha;
         double tol;
         string u;
@@ -37,6 +38,7 @@ class input {
             graph = "";
             format = "";
             weighted = false;
+            raw_weights = false;
             alpha = 0.85;
             tol = 1e-10;
             u = "";
@@ -47,6 +49,7 @@ class input {
             map<string, bool*> bool_flags;
             bool_flags["-w"] = bool_flags["--weighted"] = &weighted;
             bool_flags["-h"] = bool_flags["--help"] = &help;
+            bool_flags["-r"] = bool_flags["--raw_weights"] = &raw_weights;
             
             map<string, double*> double_flags;
             double_flags["-a"] = double_flags["--alpha"] = &alpha;
@@ -122,6 +125,9 @@ void print_help() {
     msg += "                                      (default = uniform vector).\n";
     msg += "  -w, --weighted                      Solve a weighted problem \n";
     msg += "                                      (default = false).\n";
+    msg += "  -r, --raw_weights                   Use the sparse matrix values as weights\n";
+    msg += "                                      instead of normalizing to sum to one.\n";
+    msg += "                                      (default = false).\n";
     printf("%s", msg.c_str());
 }
 
@@ -182,10 +188,17 @@ int main(const int argc, const char** argv) {
         }
     }
         
-            
-
+    // load the graph
+    double read_time = prpack_utils::get_time();
+    prpack_base_graph g(in.graph.c_str(), in.format.c_str(), in.weighted);
+    read_time = prpack_utils::get_time() - read_time;
+    
+    if (!in.raw_weights) {
+        g.normalize_weights(); 
+    }   
+    
     // solve
-    prpack_solver solver(in.graph.c_str(), in.format.c_str(), in.weighted);
+    prpack_solver solver(&g, false);
     const double* u = read_vector(in.u);
     const double* v = (in.u == in.v) ? u : read_vector(in.v);
     const prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());
@@ -200,7 +213,7 @@ int main(const int argc, const char** argv) {
     *out << "number of edges = " << res->num_es << endl;
     *out << "---------------------------" << endl;
     *out << "method = " << res->method << endl;
-    *out << "read time = " << res->read_time << "s" << endl;
+    *out << "read time = " << read_time << "s" << endl;
     *out << "preprocess time = " << res->preprocess_time << "s" << endl;
     *out << "compute time = " << res->compute_time << "s" << endl;
     *out << "number of edges touched = " << res->num_es_touched << endl;
@@ -223,5 +236,7 @@ int main(const int argc, const char** argv) {
             write_vector(res->x, res->num_vs, outfile);
         }
     }
+    
+    return (0);
 }
 

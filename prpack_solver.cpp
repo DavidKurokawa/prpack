@@ -617,7 +617,12 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
     return combine_uv(num_vs, d, num_outlinks, encoding, alpha, ret_u, ret_v);
 }
 
-// Gauss-Seidel using strongly connected components.
+/** Gauss-Seidel using strongly connected components.
+ * Notes:
+ *   If not weighted, then we store x[i] = "x[i]/outdegree" to 
+ *   avoid additional arithmetic.  We don't do this for the weighted
+ *   case because the adjustment may not be constant.
+ */
 prpack_result* prpack_solver::solve_via_scc_gs(
         const double alpha,
         const double tol,
@@ -645,7 +650,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
     const double uv_const = 1.0/num_vs;
     const int uv_exists = (uv) ? 1 : 0;
     uv = (uv) ? prpack_utils::permute(num_vs, uv, encoding) : &uv_const;
-    // initialize the eigenvector
+    // CHECK initialize the solution with one iteration of GS from x=0.
     double* x = new double[num_vs];
     for (int i = 0; i < num_vs; ++i)
         x[i] = uv[uv_exists*i]/(1 - alpha*ii[i])/((weighted) ? 1 : num_outlinks[i]);
@@ -663,7 +668,7 @@ prpack_result* prpack_solver::solve_via_scc_gs(
             const int start_j = tails_outside[i];
             const int end_j = (i + 1 != num_vs) ? tails_outside[i + 1] : num_es_outside;
             for (int j = start_j; j < end_j; ++j)
-                x_outside[i] += x[heads_outside[j]]*((weighted) ? vals_outside[j] : 1);
+                x_outside[i] += x[heads_outside[j]]*((weighted) ? vals_outside[j] : 1.);
             ret->num_es_touched += end_j - start_j;
         }
         double err, c;
@@ -678,15 +683,17 @@ prpack_result* prpack_solver::solve_via_scc_gs(
                     const int start_j = tails_inside[i];
                     const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
                     if (weighted) {
-                        for (int j = start_j; j < end_j; ++j)
+                        for (int j = start_j; j < end_j; ++j) {
                             // TODO: might want to use compensation summation for large: end_j - start_j
                             new_val += x[heads_inside[j]]*vals_inside[j];
+                        }
                         COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
                         x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
                     } else {
-                        for (int j = start_j; j < end_j; ++j)
+                        for (int j = start_j; j < end_j; ++j) {
                             // TODO: might want to use compensation summation for large: end_j - start_j
                             new_val += x[heads_inside[j]];
+                        }
                         COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]*num_outlinks[i]), c);
                         x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i])/num_outlinks[i];
                     }
@@ -698,15 +705,17 @@ prpack_result* prpack_solver::solve_via_scc_gs(
                     const int start_j = tails_inside[i];
                     const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
                     if (weighted) {
-                        for (int j = start_j; j < end_j; ++j)
+                        for (int j = start_j; j < end_j; ++j) {
                             // TODO: might want to use compensation summation for large: end_j - start_j
                             new_val += x[heads_inside[j]]*vals_inside[j];
+                        }
                         COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
                         x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
                     } else {
-                        for (int j = start_j; j < end_j; ++j)
+                        for (int j = start_j; j < end_j; ++j) {
                             // TODO: might want to use compensation summation for large: end_j - start_j
                             new_val += x[heads_inside[j]];
+                        }
                         COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]*num_outlinks[i]), c);
                         x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i])/num_outlinks[i];
                     }

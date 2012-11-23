@@ -33,6 +33,8 @@ test: $(PROG)
 	  python test/checkprvec.py data/jazz.smat -
 	./prpack_driver data/jazz.smat --output=- -m sccgs 2>/dev/null| \
 	  python test/checkprvec.py data/jazz.smat - 
+	./prpack_driver data/jazz.smat --output=- -m sccgs -w 2>/dev/null| \
+	  python test/checkprvec.py data/jazz.smat - 
 	./prpack_driver data/power.smat -w --output=- -m sccgs 2>/dev/null| \
 	  python test/checkprvec.py data/power.smat - 
 	./prpack_driver data/netscience.smat -w --output=- -m sccgs 2>/dev/null| \

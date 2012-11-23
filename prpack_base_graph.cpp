@@ -304,3 +304,30 @@ prpack_base_graph::prpack_base_graph(int nverts, int nedges,
     delete[] osets;
 }
 
+/** Normalize the edge weights to sum to one.  
+ */
+void prpack_base_graph::normalize_weights() {
+    if (!vals) { 
+        // skip normalizing weights if not using values
+        return;
+    }
+    std::vector<double> rowsums(num_vs,0.);
+    // the graph is in a compressed in-edge list.
+    for (int i=0; i<num_vs; ++i) {
+        int end_ei = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+        for (int ei=tails[i]; ei < end_ei; ++ei) {
+            int head = heads[ei];
+            rowsums[head] += vals[ei];
+        }
+    }
+    for (int i=0; i<num_vs; ++i) {
+        rowsums[i] = 1./rowsums[i];
+    }
+    for (int i=0; i<num_vs; ++i) {
+        int end_ei = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+        for (int ei=tails[i]; ei < end_ei; ++ei) {
+            vals[ei] *= rowsums[heads[ei]];
+        }
+    }
+}
+
