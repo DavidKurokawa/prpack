@@ -41,6 +41,7 @@ prpack_solver::prpack_solver(prpack_base_graph* g, bool owns_bg) {
 }
 
 prpack_solver::prpack_solver(const char* filename, const char* format, const bool weighted) {
+    // TODO outsource this function 
     initialize();
     TIME(read_time, bg = new prpack_base_graph(filename, format, weighted));
 }
@@ -59,10 +60,28 @@ int prpack_solver::get_num_vs() {
     return bg->num_vs;
 }
 
+/** Solve a PageRank problem with the default u = v = 1/n*ones. 
+ * 
+ * @param alpha the value of alpha for pagerank in the equation:
+ *   (I - alpha P - alpha u d') x = (1-alpha) v
+ * @param tol the error tolerance for the solution. The computed
+ *   solution x satisifies: 
+ *    ||x-x^*||_1 <= tol 
+ *   where x^* is the exact unique PageRank.
+ * @param see the full solve function for a description of the method command.
+ * 
+ */
 prpack_result* prpack_solver::solve(const double alpha, const double tol, const char* method) {
     return solve(alpha, tol, NULL, NULL, method);
 }
 
+/**
+ * @param method
+ *   method is one of:
+ *   "" - default auto
+ *   "sccgs" - 
+ *   "ge" - gaussian elimination without pivoting
+ */
 prpack_result* prpack_solver::solve(
         const double alpha,
         const double tol,
