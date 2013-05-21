@@ -105,9 +105,15 @@ prpack_result* prpack_solver::solve(
             m = "sg";
         else
             m = "sccgs";
-        if (u != v)
-            m += "_uv";
     }
+    if (u != v) {
+        // if "m endswith '_uv'", then don't add it, otherwise, add it
+        // code from http://stackoverflow.com/questions/874134/find-if-string-endswith-another-string-in-c
+        if (m.length() < 3 || 0 != m.compare (m.length() - 3, 3, "_uv")) {
+            m += "_uv";
+        }
+    }
+
     // run the appropriate method
     if (m == "ge") {
         if (geg == NULL) {
@@ -591,11 +597,14 @@ prpack_result* prpack_solver::combine_uv(
         const double alpha,
         const prpack_result* ret_u,
         const prpack_result* ret_v) {
+    
     prpack_result* ret = new prpack_result();
     const bool weighted = d != NULL;
     double delta_u = 0;
     double delta_v = 0;
     for (int i = 0; i < num_vs; ++i) {
+        // dgleich 2013-05-21: the num_outlinks < 0 is not a bug
+        // see the construction of the num_outlinks
         if ((weighted) ? (d[encoding[i]] == 1) : (num_outlinks[encoding[i]] < 0)) {
             delta_u += ret_u->x[i];
             delta_v += ret_v->x[i];
@@ -604,8 +613,9 @@ prpack_result* prpack_solver::combine_uv(
     const double s = ((1 - alpha)*alpha*delta_v)/(1 - alpha*delta_u);
     const double t = 1 - alpha;
     ret->x = new double[num_vs];
-    for (int i = 0; i < num_vs; ++i)
+    for (int i = 0; i < num_vs; ++i) {
         ret->x[i] = s*ret_u->x[i] + t*ret_v->x[i];
+    }
     ret->num_es_touched = ret_u->num_es_touched + ret_v->num_es_touched;
     // clean up and return
     delete ret_u;
