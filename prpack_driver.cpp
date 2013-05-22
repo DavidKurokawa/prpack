@@ -212,6 +212,11 @@ int main(const int argc, const char** argv) {
     *out << "number of vertices = " << res->num_vs << endl;
     *out << "number of edges = " << res->num_es << endl;
     *out << "---------------------------" << endl;
+    *out << "alpha = " << in.alpha << endl;
+    *out << "tol = " << in.tol << endl;
+    *out << "u = " << in.u << endl;
+    *out << "v = " << in.v << endl;
+    *out << "---------------------------" << endl;
     *out << "method = " << res->method << endl;
     *out << "read time = " << read_time << "s" << endl;
     *out << "preprocess time = " << res->preprocess_time << "s" << endl;

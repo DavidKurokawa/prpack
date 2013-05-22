@@ -10,6 +10,8 @@ OBJS = prpack_utils.o \
     prpack_preprocessed_schur_graph.o \
     prpack_preprocessed_scc_graph.o \
     prpack_solver.o \
+    prpack_solver_ge.o \
+    prpack_solver_sccgs.o \
     prpack_result.o \
     prpack_driver.o \
     prpack_driver_benchmark.o
@@ -39,7 +41,10 @@ test: $(PROG)
 	  python test/checkprvec.py data/power.smat - 
 	./prpack_driver data/netscience.smat -w --output=- -m sccgs 2>/dev/null| \
 	  python test/checkprvec.py data/netscience.smat - 
-	  
+	./prpack_driver data/wb-cs.stanford.smat --output=- -m sccgs_uv \
+		  -a 0.5 -v test/csstan-v.vec -u test/csstan-u.vec 2>/dev/null \
+	  | python test/checkprvec.py data/wb-cs.stanford.smat - \
+		  -a 0.5 -v test/csstan-v.vec -u test/csstan-u.vec
 perf: $(PROG)
 	./prpack_driver ?
 

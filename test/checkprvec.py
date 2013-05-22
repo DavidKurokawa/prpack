@@ -85,6 +85,7 @@ class Graph:
             sumy = math.fsum(y)
             
             x = [ yi/sumy for yi in y ]
+                        
         return x
 
 def setup_command_line():

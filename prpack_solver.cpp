@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+
 using namespace prpack;
 using namespace std;
 
@@ -41,6 +42,7 @@ prpack_solver::prpack_solver(prpack_base_graph* g, bool owns_bg) {
 }
 
 prpack_solver::prpack_solver(const char* filename, const char* format, const bool weighted) {
+    // TODO outsource this function 
     initialize();
     TIME(read_time, bg = new prpack_base_graph(filename, format, weighted));
 }
@@ -59,10 +61,28 @@ int prpack_solver::get_num_vs() {
     return bg->num_vs;
 }
 
+/** Solve a PageRank problem with the default u = v = 1/n*ones. 
+ * 
+ * @param alpha the value of alpha for pagerank in the equation:
+ *   (I - alpha P - alpha u d') x = (1-alpha) v
+ * @param tol the error tolerance for the solution. The computed
+ *   solution x satisifies: 
+ *    ||x-x^*||_1 <= tol 
+ *   where x^* is the exact unique PageRank.
+ * @param see the full solve function for a description of the method command.
+ * 
+ */
 prpack_result* prpack_solver::solve(const double alpha, const double tol, const char* method) {
     return solve(alpha, tol, NULL, NULL, method);
 }
 
+/**
+ * @param method
+ *   method is one of:
+ *   "" - default auto
+ *   "sccgs" - 
+ *   "ge" - gaussian elimination without pivoting
+ */
 prpack_result* prpack_solver::solve(
         const double alpha,
         const double tol,
@@ -85,9 +105,15 @@ prpack_result* prpack_solver::solve(
             m = "sg";
         else
             m = "sccgs";
-        if (u != v)
-            m += "_uv";
     }
+    if (u != v) {
+        // if "m endswith '_uv'", then don't add it, otherwise, add it
+        // code from http://stackoverflow.com/questions/874134/find-if-string-endswith-another-string-in-c
+        if (m.length() < 3 || 0 != m.compare (m.length() - 3, 3, "_uv")) {
+            m += "_uv";
+        }
+    }
+
     // run the appropriate method
     if (m == "ge") {
         if (geg == NULL) {
@@ -247,74 +273,6 @@ prpack_result* prpack_solver::solve(
 
 // VARIOUS SOLVING METHODS ////////////////////////////////////////////////////////////////////////
 
-prpack_result* prpack_solver::solve_via_ge(
-        const double alpha,
-        const double tol,
-        const int num_vs,
-        const double* matrix,
-        const double* uv) {
-    prpack_result* ret = new prpack_result();
-    // initialize uv values
-    const double uv_const = 1.0/num_vs;
-    const int uv_exists = (uv) ? 1 : 0;
-    uv = (uv) ? uv : &uv_const;
-    // create matrix A
-    double* A = new double[num_vs*num_vs];
-    for (int i = 0; i < num_vs*num_vs; ++i)
-        A[i] = -alpha*matrix[i];
-    for (int i = 0; i < num_vs*num_vs; i += num_vs + 1)
-        ++A[i];
-    // create vector b
-    double* b = new double[num_vs];
-    for (int i = 0; i < num_vs; ++i)
-        b[i] = uv[uv_exists*i];
-    // solve and normalize
-    ge(num_vs, A, b);
-    normalize(num_vs, b);
-    // clean up and return
-    delete[] A;
-    ret->num_es_touched = -1;
-    ret->x = b;
-    return ret;
-}
-
-prpack_result* prpack_solver::solve_via_ge_uv(
-        const double alpha,
-        const double tol,
-        const int num_vs,
-        const double* matrix,
-        const double* d,
-        const double* u,
-        const double* v) {
-    prpack_result* ret = new prpack_result();
-    // initialize u and v values
-    const double u_const = 1.0/num_vs;
-    const double v_const = 1.0/num_vs;
-    const int u_exists = (u) ? 1 : 0;
-    const int v_exists = (v) ? 1 : 0;
-    u = (u) ? u : &u_const;
-    v = (v) ? v : &v_const;
-    // create matrix A
-    double* A = new double[num_vs*num_vs];
-    for (int i = 0; i < num_vs*num_vs; ++i)
-        A[i] = -alpha*matrix[i];
-    for (int i = 0, inum_vs = 0; i < num_vs; ++i, inum_vs += num_vs)
-        for (int j = 0; j < num_vs; ++j)
-            A[inum_vs + j] -= alpha*u[u_exists*i]*d[j];
-    for (int i = 0; i < num_vs*num_vs; i += num_vs + 1)
-        ++A[i];
-    // create vector b
-    double* b = new double[num_vs];
-    for (int i = 0; i < num_vs; ++i)
-        b[i] = (1 - alpha)*v[v_exists*i];
-    // solve
-    ge(num_vs, A, b);
-    // clean up and return
-    delete[] A;
-    ret->num_es_touched = -1;
-    ret->x = b;
-    return ret;
-}
 
 // Vanilla Gauss-Seidel.
 prpack_result* prpack_solver::solve_via_gs(
@@ -617,221 +575,7 @@ prpack_result* prpack_solver::solve_via_schur_gs_uv(
     return combine_uv(num_vs, d, num_outlinks, encoding, alpha, ret_u, ret_v);
 }
 
-/** Gauss-Seidel using strongly connected components.
- * Notes:
- *   If not weighted, then we store x[i] = "x[i]/outdegree" to 
- *   avoid additional arithmetic.  We don't do this for the weighted
- *   case because the adjustment may not be constant.
- */
-prpack_result* prpack_solver::solve_via_scc_gs(
-        const double alpha,
-        const double tol,
-        const int num_vs,
-        const int num_es_inside,
-        const int* heads_inside,
-        const int* tails_inside,
-        const double* vals_inside,
-        const int num_es_outside,
-        const int* heads_outside,
-        const int* tails_outside,
-        const double* vals_outside,
-        const double* ii,
-        const double* d,
-        const double* num_outlinks,
-        const double* uv,
-        const int num_comps,
-        const int* divisions,
-        const int* encoding,
-        const int* decoding,
-        const bool should_normalize) {
-    prpack_result* ret = new prpack_result();
-    const bool weighted = vals_inside != NULL;
-    // initialize uv values
-    const double uv_const = 1.0/num_vs;
-    const int uv_exists = (uv) ? 1 : 0;
-    uv = (uv) ? prpack_utils::permute(num_vs, uv, encoding) : &uv_const;
-    // CHECK initialize the solution with one iteration of GS from x=0.
-    double* x = new double[num_vs];
-    for (int i = 0; i < num_vs; ++i)
-        x[i] = uv[uv_exists*i]/(1 - alpha*ii[i])/((weighted) ? 1 : num_outlinks[i]);
-    // create x_outside
-    double* x_outside = new double[num_vs];
-    // run Gauss-Seidel for (I - alpha*P)*x = uv
-    ret->num_es_touched = 0;
-    for (int comp_i = 0; comp_i < num_comps; ++comp_i) {
-        const int start_comp = divisions[comp_i];
-        const int end_comp = (comp_i + 1 != num_comps) ? divisions[comp_i + 1] : num_vs;
-        const bool parallelize = end_comp - start_comp > 512;
-        // initialize relevant x_outside values
-        for (int i = start_comp; i < end_comp; ++i) {
-            x_outside[i] = 0;
-            const int start_j = tails_outside[i];
-            const int end_j = (i + 1 != num_vs) ? tails_outside[i + 1] : num_es_outside;
-            for (int j = start_j; j < end_j; ++j)
-                x_outside[i] += x[heads_outside[j]]*((weighted) ? vals_outside[j] : 1.);
-            ret->num_es_touched += end_j - start_j;
-        }
-        double err, c;
-        do {
-            int num_es_touched = 0;
-            err = c = 0;
-            if (parallelize) {
-                // iterate through vertices
-                #pragma omp parallel for firstprivate(c) reduction(+:err, num_es_touched) schedule(dynamic, 64)
-                for (int i = start_comp; i < end_comp; ++i) {
-                    double new_val = x_outside[i];
-                    const int start_j = tails_inside[i];
-                    const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-                    if (weighted) {
-                        for (int j = start_j; j < end_j; ++j) {
-                            // TODO: might want to use compensation summation for large: end_j - start_j
-                            new_val += x[heads_inside[j]]*vals_inside[j];
-                        }
-                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
-                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
-                    } else {
-                        for (int j = start_j; j < end_j; ++j) {
-                            // TODO: might want to use compensation summation for large: end_j - start_j
-                            new_val += x[heads_inside[j]];
-                        }
-                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]*num_outlinks[i]), c);
-                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i])/num_outlinks[i];
-                    }
-                    num_es_touched += end_j - start_j;
-                }
-            } else {
-                for (int i = start_comp; i < end_comp; ++i) {
-                    double new_val = x_outside[i];
-                    const int start_j = tails_inside[i];
-                    const int end_j = (i + 1 != num_vs) ? tails_inside[i + 1] : num_es_inside;
-                    if (weighted) {
-                        for (int j = start_j; j < end_j; ++j) {
-                            // TODO: might want to use compensation summation for large: end_j - start_j
-                            new_val += x[heads_inside[j]]*vals_inside[j];
-                        }
-                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]), c);
-                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i]);
-                    } else {
-                        for (int j = start_j; j < end_j; ++j) {
-                            // TODO: might want to use compensation summation for large: end_j - start_j
-                            new_val += x[heads_inside[j]];
-                        }
-                        COMPENSATED_SUM(err, fabs(uv[uv_exists*i] + alpha*new_val - (1 - alpha*ii[i])*x[i]*num_outlinks[i]), c);
-                        x[i] = (alpha*new_val + uv[uv_exists*i])/(1 - alpha*ii[i])/num_outlinks[i];
-                    }
-                    num_es_touched += end_j - start_j;
-                }
-            }
-            // update iteration index
-            ret->num_es_touched += num_es_touched;
-        } while (err/(1 - alpha) >= tol*(end_comp - start_comp)/num_vs);
-    }
-    // undo num_outlinks transformation
-    if (!weighted)
-        for (int i = 0; i < num_vs; ++i)
-            x[i] *= num_outlinks[i];
-    // normalize x to get the solution for: (I - alpha*P - alpha*u*d')*x = (1 - alpha)*v
-    if (should_normalize)
-        normalize(num_vs, x);
-    // return results
-    ret->x = prpack_utils::permute(num_vs, x, decoding);
-    delete[] x;
-    delete[] x_outside;
-    if (uv_exists)
-        delete[] uv;
-    return ret;
-}
-
-prpack_result* prpack_solver::solve_via_scc_gs_uv(
-        const double alpha,
-        const double tol,
-        const int num_vs,
-        const int num_es_inside,
-        const int* heads_inside,
-        const int* tails_inside,
-        const double* vals_inside,
-        const int num_es_outside,
-        const int* heads_outside,
-        const int* tails_outside,
-        const double* vals_outside,
-        const double* ii,
-        const double* d,
-        const double* num_outlinks,
-        const double* u,
-        const double* v,
-        const int num_comps,
-        const int* divisions,
-        const int* encoding,
-        const int* decoding) {
-    // solve uv = u
-    prpack_result* ret_u = solve_via_scc_gs(
-            alpha,
-            tol,
-            num_vs,
-            num_es_inside,
-            heads_inside,
-            tails_inside,
-            vals_inside,
-            num_es_outside,
-            heads_outside,
-            tails_outside,
-            vals_outside,
-            ii,
-            d,
-            num_outlinks,
-            u,
-            num_comps,
-            divisions,
-            encoding,
-            decoding,
-            false);
-    // solve uv = v
-    prpack_result* ret_v = solve_via_scc_gs(
-            alpha,
-            tol,
-            num_vs,
-            num_es_inside,
-            heads_inside,
-            tails_inside,
-            vals_inside,
-            num_es_outside,
-            heads_outside,
-            tails_outside,
-            vals_outside,
-            ii,
-            d,
-            num_outlinks,
-            v,
-            num_comps,
-            divisions,
-            encoding,
-            decoding,
-            false);
-    // combine u and v
-    return combine_uv(num_vs, d, num_outlinks, encoding, alpha, ret_u, ret_v);
-}
-
 // VARIOUS HELPER METHODS /////////////////////////////////////////////////////////////////////////
-
-// Run Gaussian-Elimination (note: this changes A and returns the solution in b)
-void prpack_solver::ge(const int sz, double* A, double* b) {
-    // put into triangular form
-    for (int i = 0, isz = 0; i < sz; ++i, isz += sz)
-        for (int k = 0, ksz = 0; k < i; ++k, ksz += sz)
-            if (A[isz + k] != 0) {
-                const double coeff = A[isz + k]/A[ksz + k];
-                A[isz + k] = 0;
-                for (int j = k + 1; j < sz; ++j)
-                    A[isz + j] -= coeff*A[ksz + j];
-                b[i] -= coeff*b[k];
-            }
-    // backwards substitution
-    for (int i = sz - 1, isz = (sz - 1)*sz; i >= 0; --i, isz -= sz) {
-        for (int j = i + 1; j < sz; ++j)
-            b[i] -= A[isz + j]*b[j];
-        b[i] /= A[isz + i];
-    }
-}
 
 // Normalize a vector to sum to 1.
 void prpack_solver::normalize(const int length, double* x) {
@@ -853,11 +597,14 @@ prpack_result* prpack_solver::combine_uv(
         const double alpha,
         const prpack_result* ret_u,
         const prpack_result* ret_v) {
+    
     prpack_result* ret = new prpack_result();
     const bool weighted = d != NULL;
     double delta_u = 0;
     double delta_v = 0;
     for (int i = 0; i < num_vs; ++i) {
+        // dgleich 2013-05-21: the num_outlinks < 0 is not a bug
+        // see the construction of the num_outlinks
         if ((weighted) ? (d[encoding[i]] == 1) : (num_outlinks[encoding[i]] < 0)) {
             delta_u += ret_u->x[i];
             delta_v += ret_v->x[i];
@@ -866,8 +613,9 @@ prpack_result* prpack_solver::combine_uv(
     const double s = ((1 - alpha)*alpha*delta_v)/(1 - alpha*delta_u);
     const double t = 1 - alpha;
     ret->x = new double[num_vs];
-    for (int i = 0; i < num_vs; ++i)
+    for (int i = 0; i < num_vs; ++i) {
         ret->x[i] = s*ret_u->x[i] + t*ret_v->x[i];
+    }
     ret->num_es_touched = ret_u->num_es_touched + ret_v->num_es_touched;
     // clean up and return
     delete ret_u;
