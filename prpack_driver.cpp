@@ -1,14 +1,15 @@
 #include "prpack_utils.h"
+#include "prpack_result.h"
 #include "prpack_solver.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
-#include <omp.h>
 using namespace prpack;
 using namespace std;
 
@@ -19,45 +20,116 @@ void benchmark(int numverts=200000);
 class input {
     public:
         // instance variables
+        bool help;
         string graph;
         string format;
+        bool weighted;
+        bool raw_weights;
         double alpha;
         double tol;
         string u;
         string v;
         string method;
         string output;
-        // constructor (default values can be set here)
-        input() {
+        // constructor
+        input(const int argc, const char** argv) {
+            // default values
+            help = false;
             graph = "";
             format = "";
+            weighted = false;
+            raw_weights = false;
             alpha = 0.85;
             tol = 1e-10;
             u = "";
             v = "";
             method = "";
             output = "";
-        }
-        // methods
-        void parse_arg(string a, string b) {
-            if (a == "-f" || a == "--format")
-                format = b;
-            else if (a == "-a" || a == "--alpha")
-                alpha = atof(b.c_str());
-            else if (a == "-t" || a == "--tol" || a == "--tolerance")
-                tol = atof(b.c_str());
-            else if (a == "-o" || a == "--out" || a == "--output")
-                output = b;
-            else if (a == "-u" || a == "--u")
-                u = b;
-            else if (a == "-v" || a == "--v")
-                v = b;
-            else if (a == "-m" || a == "--method")
-                method = b;
-            else
-                prpack_utils::validate(false, "Error: argument '" + a + "' is not valid");
+            // convenience variables
+            map<string, bool*> bool_flags;
+            bool_flags["-w"] = bool_flags["--weighted"] = &weighted;
+            bool_flags["-h"] = bool_flags["--help"] = &help;
+            bool_flags["-r"] = bool_flags["--raw_weights"] = &raw_weights;
+            
+            map<string, double*> double_flags;
+            double_flags["-a"] = double_flags["--alpha"] = &alpha;
+            double_flags["-t"] = double_flags["--tol"] 
+                = double_flags["--tolerance"] = &tol;
+                
+            map<string, string*> string_flags;
+            string_flags["-f"] = string_flags["--format"] = &format;
+            string_flags["-u"] = string_flags["--u"] = &u;
+            string_flags["-v"] = string_flags["--v"] = &v;
+            string_flags["-m"] = string_flags["--method"] = &method;
+            string_flags["-o"] = string_flags["--out"] 
+                = string_flags["--output"] = &output;
+                
+            // parse args
+            prpack_utils::validate(argc >= 2, "Error: graph must be supplied.");
+            graph = string(argv[1]);
+            if (graph == "-h" || graph == "--help") {
+                help = true;
+                return;
+            }
+            for (int i = 2; i < argc; ++i) {
+                string s(argv[i]);
+                if (bool_flags.find(s) != bool_flags.end())
+                    *bool_flags[s] = true;
+                else {
+                    // parse value of parameter s
+                    string t;
+                    if (s.length() >= 3 && s[0] == '-' && s[1] == '-' && 
+                        s.find('=') != string::npos) {
+                        const int idx = s.find('=');
+                        t = s.substr(idx + 1);
+                        s = s.substr(0, idx);
+                    } else if (s.length() == 2 && s[0] == '-' && 
+                               i + 1 < argc)
+                        t = string(argv[++i]);
+                    else
+                        prpack_utils::validate(false, 
+                            "Error: argument '" + s + 
+                            "' is not valid or does not specify a value.");
+                    // set parameter s to t
+                    if (double_flags.find(s) != double_flags.end())
+                        *double_flags[s] = atof(t.c_str());
+                    else if (string_flags.find(s) != string_flags.end())
+                        *string_flags[s] = t;
+                    else
+                        prpack_utils::validate(false, "Error: argument '" + s + 
+                                                "' is not valid.");
+                }
+            }
         }
 };
+
+// Prints out the help menu
+void print_help() {
+    string msg = "";
+    msg += "Usage: prpack_driver GRAPH [options]\n";
+    msg += "Options:\n";
+    msg += "  -a ALPHA, --alpha=ALPHA             Solve with ALPHA value \n";
+    msg += "                                      (default = 0.85).\n";
+    msg += "  -f FORMAT, --format=FORMAT          Read GRAPH as a FORMAT file \n";
+    msg += "                                      (default = use extension of GRAPH).\n";
+    msg += "  -h, --help                          Print out this help menu.\n";
+    msg += "  -m METHOD, --method=METHOD          Solve via METHOD (default based on \n";
+    msg += "                                      properties of GRAPH).\n";
+    msg += "  -o OUT, --out=OUT, --output=OUT     File to output solution \n";
+    msg += "                                      (default = standard out).\n";
+    msg += "  -t TOL, --tol=TOL, --tolerance=TOL  Ensure 1-norm error < TOL \n";
+    msg += "                                      (default = 1e-10).\n";
+    msg += "  -u U, --u=U                         Solve with U value \n";
+    msg += "                                      (default = uniform vector).\n";
+    msg += "  -v V, --v=V                         Solve with V value \n";
+    msg += "                                      (default = uniform vector).\n";
+    msg += "  -w, --weighted                      Solve a weighted problem \n";
+    msg += "                                      (default = false).\n";
+    msg += "  -r, --raw_weights                   Use the sparse matrix values as weights\n";
+    msg += "                                      instead of normalizing to sum to one.\n";
+    msg += "                                      (default = false).\n";
+    printf("%s", msg.c_str());
+}
 
 double* read_vector(const string& filename) {
     if (filename == "")
@@ -84,21 +156,16 @@ void write_vector(double *x, int n, ostream& out) {
     }
 }
 
-int main(int argc, const char** argv) {
+int main(const int argc, const char** argv) {
     // parse command args
-    input in;
-    in.graph = string(argv[1]);
-    for (int i = 2; i < argc; ++i) {
-        string x(argv[i]);
-        int idx = x.find("=");
-        if (idx == (int) string::npos) {
-            prpack_utils::validate(x.length() == 2 && x[0] == '-', "Error: argument '" + x + "' is not valid");
-            prpack_utils::validate(i + 1 < argc, "Error: argument '" + x + "' does not specify value");
-            in.parse_arg(x, string(argv[++i]));
-        } else {
-            prpack_utils::validate(x.length() > 2 && x[0] == '-' && x[1] == '-', "Error: argument '" + x + "' is not valid");
-            in.parse_arg(x.substr(0, idx), x.substr(idx + 1));
-        }
+    if (argc == 1) {
+        print_help(); 
+        return 0;
+    }
+    input in(argc, argv);
+    if (in.help) {
+        print_help();
+        return 0;
     }
 
     if (in.graph == "?") {
@@ -108,12 +175,33 @@ int main(int argc, const char** argv) {
         benchmark(atoi(&argv[1][1]));
         return 0;
     }
-
+    // check the filename first
+    {
+        FILE *testfid = NULL;
+        if ((testfid = fopen(in.graph.c_str(),"r")) != NULL) {
+            fclose(testfid);
+        } else {
+            prpack_utils::validate(false, 
+                            "Error: '" + in.graph + 
+                            "' is not a valid filename.");
+            return 1;
+        }
+    }
+        
+    // load the graph
+    double read_time = prpack_utils::get_time();
+    prpack_base_graph g(in.graph.c_str(), in.format.c_str(), in.weighted);
+    read_time = prpack_utils::get_time() - read_time;
+    
+    if (!in.raw_weights) {
+        g.normalize_weights(); 
+    }   
+    
     // solve
-    prpack_solver solver(in.graph, in.format);
-    double* u = read_vector(in.u);
-    double* v = (in.u == in.v) ? u : read_vector(in.v);
-    prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method);
+    prpack_solver solver(&g, false);
+    const double* u = read_vector(in.u);
+    const double* v = (in.u == in.v) ? u : read_vector(in.v);
+    const prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());
     // create output stream for text data
     ostream* out = &cout; // usually, this is cout
     if (in.output == "-") {
@@ -125,7 +213,7 @@ int main(int argc, const char** argv) {
     *out << "number of edges = " << res->num_es << endl;
     *out << "---------------------------" << endl;
     *out << "method = " << res->method << endl;
-    *out << "read time = " << res->read_time << "s" << endl;
+    *out << "read time = " << read_time << "s" << endl;
     *out << "preprocess time = " << res->preprocess_time << "s" << endl;
     *out << "compute time = " << res->compute_time << "s" << endl;
     *out << "number of edges touched = " << res->num_es_touched << endl;
@@ -148,5 +236,7 @@ int main(int argc, const char** argv) {
             write_vector(res->x, res->num_vs, outfile);
         }
     }
+    
+    return (0);
 }
 

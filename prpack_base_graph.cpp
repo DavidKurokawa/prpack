@@ -12,9 +12,15 @@ using namespace std;
 void prpack_base_graph::initialize() {
     heads = NULL;
     tails = NULL;
+    vals = NULL;
 }
 
-prpack_base_graph::prpack_base_graph(prpack_csc* g) {
+prpack_base_graph::prpack_base_graph() {
+	initialize();
+	num_vs = num_es = 0;
+}
+
+prpack_base_graph::prpack_base_graph(const prpack_csc* g) {
     initialize();
     num_vs = g->num_vs;
     num_es = g->num_es;
@@ -25,17 +31,17 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     tails = new int[num_vs];
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = hs[h];
-        int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
+        const int start_ti = hs[h];
+        const int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = ts[ti];
+            const int t = ts[ti];
             ++tails[t];
             if (h == t)
                 ++num_self_es;
         }
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
@@ -43,10 +49,10 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = hs[h];
-        int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
+        const int start_ti = hs[h];
+        const int end_ti = (h + 1 != num_vs) ? hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = ts[ti];
+            const int t = ts[ti];
             heads[tails[t] + osets[t]++] = h;
         }
     }
@@ -54,8 +60,7 @@ prpack_base_graph::prpack_base_graph(prpack_csc* g) {
     delete[] osets;
 }
 
-
-prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
+prpack_base_graph::prpack_base_graph(const prpack_int64_csc* g) {
     initialize();
     // TODO remove the assert and add better behavior
     assert(num_vs <= std::numeric_limits<int>::max());
@@ -68,17 +73,17 @@ prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     tails = new int[num_vs];
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = (int)hs[h];
-        int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
+        const int start_ti = (int)hs[h];
+        const int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = (int)ts[ti];
+            const int t = (int)ts[ti];
             ++tails[t];
             if (h == t)
                 ++num_self_es;
         }
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
@@ -86,10 +91,10 @@ prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
     for (int h = 0; h < num_vs; ++h) {
-        int start_ti = (int)hs[h];
-        int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
+        const int start_ti = (int)hs[h];
+        const int end_ti = (h + 1 != num_vs) ? (int)hs[h + 1] : num_es;
         for (int ti = start_ti; ti < end_ti; ++ti) {
-            int t = (int)ts[ti];
+            const int t = (int)ts[ti];
             heads[tails[t] + osets[t]++] = h;
         }
     }
@@ -97,13 +102,13 @@ prpack_base_graph::prpack_base_graph(prpack_int64_csc* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(prpack_csr* g) {
+prpack_base_graph::prpack_base_graph(const prpack_csr* g) {
     initialize();
     assert(false);
     // TODO
 }
 
-prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
+prpack_base_graph::prpack_base_graph(const prpack_edge_list* g) {
     initialize();
     num_vs = g->num_vs;
     num_es = g->num_es;
@@ -119,7 +124,7 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
             ++num_self_es;
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
@@ -132,27 +137,35 @@ prpack_base_graph::prpack_base_graph(prpack_edge_list* g) {
     delete[] osets;
 }
 
-prpack_base_graph::prpack_base_graph(const string& filename, const string& format) {
+prpack_base_graph::prpack_base_graph(const char* filename, const char* format, const bool weighted) {
     initialize();
-    FILE* f = fopen(filename.c_str(), "r");
-    string ext = (format == "") ? filename.substr(filename.rfind('.') + 1) : format;
-    if (ext == "smat")
-        read_smat(f);
-    else if (ext == "edges" || ext == "eg2")
-        read_edges(f);
-    else if (ext == "graph-txt")
-        read_ascii(f);
-    else
-        prpack_utils::validate(false, "Invalid graph format");
+    FILE* f = fopen(filename, "r");
+    const string s(filename);
+    const string t(format);
+    const string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
+    if (ext == "smat") {
+        read_smat(f, weighted);
+    } else {
+        prpack_utils::validate(!weighted, 
+            "Error: graph format is not compatible with weighted option.");
+        if (ext == "edges" || ext == "eg2") {
+            read_edges(f);
+        } else if (ext == "graph-txt") {
+            read_ascii(f);
+        } else {
+            prpack_utils::validate(false, "Error: invalid graph format.");
+        }
+    }
     fclose(f);
 }
 
 prpack_base_graph::~prpack_base_graph() {
     delete[] heads;
     delete[] tails;
+    delete[] vals;
 }
 
-bool prpack_base_graph::read_smat(FILE* f) {
+bool prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     // read in header
     int nvs2=0;
     assert(fscanf(f, "%d %d %d", &num_vs, &nvs2, &num_es) == 3);
@@ -163,28 +176,38 @@ bool prpack_base_graph::read_smat(FILE* f) {
     num_self_es = 0;
     int* hs = new int[num_es];
     int* ts = new int[num_es];
+    heads = new int[num_es];
     tails = new int[num_vs];
+    double* vs = NULL;
+    if (weighted) {
+        vs = new double[num_es];
+        vals = new double[num_es];
+    }
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
-        double val;
-        assert(fscanf(f, "%d %d %lf", &hs[i], &ts[i], &val) == 3);
+        assert(fscanf(f, "%d %d %lf", 
+            &hs[i], &ts[i], &((weighted) ? vs[i] : ignore)) == 3);
         ++tails[ts[i]];
         if (hs[i] == ts[i])
             ++num_self_es;
     }
     for (int i = 0, sum = 0; i < num_vs; ++i) {
-        int temp = sum;
+        const int temp = sum;
         sum += tails[i];
         tails[i] = temp;
     }
-    heads = new int[num_es];
     int* osets = new int[num_vs];
     memset(osets, 0, num_vs*sizeof(osets[0]));
-    for (int i = 0; i < num_es; ++i)
-        heads[tails[ts[i]] + osets[ts[i]]++] = hs[i];
+    for (int i = 0; i < num_es; ++i) {
+        const int idx = tails[ts[i]] + osets[ts[i]]++;
+        heads[idx] = hs[i];
+        if (weighted)
+            vals[idx] = vs[i];
+    }
     // clean up
     delete[] hs;
     delete[] ts;
+    delete[] vs;
     delete[] osets;
     return true;
 }
@@ -194,7 +217,7 @@ void prpack_base_graph::read_edges(FILE* f) {
     int h, t;
     num_es = num_self_es = 0;
     while (fscanf(f, "%d %d", &h, &t) == 2) {
-        int m = (h < t) ? t : h;
+        const int m = (h < t) ? t : h;
         if ((int) al.size() < m + 1)
             al.resize(m + 1);
         al[t].push_back(h);
@@ -227,7 +250,7 @@ void prpack_base_graph::read_ascii(FILE* f) {
                     line_ended = s[i] == '\n';
                     if (i != 0) {
                         s[i] = '\0';
-                        int t = atoi(s);
+                        const int t = atoi(s);
                         al[t].push_back(h);
                         ++num_es;
                         if (h == t)
@@ -284,3 +307,31 @@ prpack_base_graph::prpack_base_graph(int nverts, int nedges,
     delete[] ts;
     delete[] osets;
 }
+
+/** Normalize the edge weights to sum to one.  
+ */
+void prpack_base_graph::normalize_weights() {
+    if (!vals) { 
+        // skip normalizing weights if not using values
+        return;
+    }
+    std::vector<double> rowsums(num_vs,0.);
+    // the graph is in a compressed in-edge list.
+    for (int i=0; i<num_vs; ++i) {
+        int end_ei = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+        for (int ei=tails[i]; ei < end_ei; ++ei) {
+            int head = heads[ei];
+            rowsums[head] += vals[ei];
+        }
+    }
+    for (int i=0; i<num_vs; ++i) {
+        rowsums[i] = 1./rowsums[i];
+    }
+    for (int i=0; i<num_vs; ++i) {
+        int end_ei = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+        for (int ei=tails[i]; ei < end_ei; ++ei) {
+            vals[ei] *= rowsums[heads[ei]];
+        }
+    }
+}
+

@@ -1,6 +1,5 @@
 #ifndef PRPACK_RESULT
 #define PRPACK_RESULT
-#include <string>
 
 namespace prpack {
 
@@ -15,7 +14,7 @@ namespace prpack {
             double preprocess_time;
             double compute_time;
             long long num_es_touched;
-            std::string method;
+            const char* method;
             int converged;
             // constructor
             prpack_result();

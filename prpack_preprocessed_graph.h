@@ -9,8 +9,7 @@ namespace prpack {
         public:
             int num_vs;
             int num_es;
-            double* ii;
-            double* inv_num_outlinks;
+            double* d;
     };
 
 };

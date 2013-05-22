@@ -28,7 +28,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
     double tol = parse_tol(raw_tol);
     double* u = parse_uv(num_vs, raw_u);
     double* v = parse_uv(num_vs, raw_v);
-    string method = parse_method(raw_method);
+    char* method = parse_method(raw_method);
     // compute pagerank
     prpack_result* res = solver->solve(alpha, tol, u, v, method);
     // return the pagerank vector and stats if necessary
@@ -38,3 +38,4 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
         plhs[1] = ares;
     delete res;
 }
+

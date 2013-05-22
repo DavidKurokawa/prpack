@@ -1,7 +1,11 @@
+IGRAPH_SUPPORT ?= 0
+
 CXX = g++
-CXXFLAGS = -Wall -O3 -fopenmp 
+CXXFLAGS = -Wall -g -fopenmp 
+LDFLAGS =
 OBJS = prpack_utils.o \
     prpack_base_graph.o \
+    prpack_preprocessed_ge_graph.o \
     prpack_preprocessed_gs_graph.o \
     prpack_preprocessed_schur_graph.o \
     prpack_preprocessed_scc_graph.o \
@@ -11,10 +15,16 @@ OBJS = prpack_utils.o \
     prpack_driver_benchmark.o
 PROG = prpack_driver
 
+ifeq ($(IGRAPH_SUPPORT),1)
+	OBJS += prpack_igraph_graph.o
+	CXXFLAGS += $(shell pkg-config igraph --cflags) -DPRPACK_IGRAPH_SUPPORT
+	LDFLAGS += $(shell pkg-config igraph --libs)
+endif
+
 all: ${PROG}
 	
 ${PROG}: ${OBJS}
-	${CXX} ${CXXFLAGS} -o $@ ${OBJS}
+	${CXX} ${CXXFLAGS} -o $@ ${OBJS} ${LDFLAGS}
 	
 test: $(PROG)
 	./prpack_driver data/jazz.smat --output=- 2>/dev/null | \
@@ -23,6 +33,12 @@ test: $(PROG)
 	  python test/checkprvec.py data/jazz.smat -
 	./prpack_driver data/jazz.smat --output=- -m sccgs 2>/dev/null| \
 	  python test/checkprvec.py data/jazz.smat - 
+	./prpack_driver data/jazz.smat --output=- -m sccgs -w 2>/dev/null| \
+	  python test/checkprvec.py data/jazz.smat - 
+	./prpack_driver data/power.smat -w --output=- -m sccgs 2>/dev/null| \
+	  python test/checkprvec.py data/power.smat - 
+	./prpack_driver data/netscience.smat -w --output=- -m sccgs 2>/dev/null| \
+	  python test/checkprvec.py data/netscience.smat - 
 	  
 perf: $(PROG)
 	./prpack_driver ?
