@@ -21,7 +21,7 @@ alpha = 0.99;
 x = (speye(n) - alpha * P')\ones(n,1);
 x = x./sum(x);
 
-y = pagerank(A);
+y = pagerank(A,alpha);
 dxy = norm(x-y,1);
 assert(dxy < 2*tol);
 

@@ -19,7 +19,7 @@ classdef pagerank_solver < handle
         % method
         function [x, ret] = solve(obj, alpha, varargin)
             % set the default alpha
-            if nargin < 3
+            if nargin < 2
                 alpha = 0.85;
             end
             opts.v = [];
