@@ -6,12 +6,26 @@ alpha = 0.85;
 A = readSMAT('../data/jazz.smat');
 P = normout(A);
 n = size(P,1);
+
+%%
 x = (speye(n) - alpha * P')\ones(n,1);
 x = x./sum(x);
 
 y = pagerank(A);
 dxy = norm(x-y,1);
 assert(dxy < 2*tol);
+
+
+%% Check another alpha
+alpha = 0.99;
+x = (speye(n) - alpha * P')\ones(n,1);
+x = x./sum(x);
+
+y = pagerank(A);
+dxy = norm(x-y,1);
+assert(dxy < 2*tol);
+
+
 
 
 function P = normout(A)

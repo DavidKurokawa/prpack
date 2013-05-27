@@ -1,12 +1,14 @@
 #ifndef PRPACK_IGRAPH_GRAPH
 #define PRPACK_IGRAPH_GRAPH
 
+namespace prpack {
+
 #ifdef PRPACK_IGRAPH_SUPPORT
 
 #include "igraph_interface.h"
 #include "prpack_base_graph.h"
 
-namespace prpack {
+
 
     class prpack_igraph_graph : public prpack_base_graph {
 
@@ -17,10 +19,10 @@ namespace prpack {
 					igraph_bool_t directed = true);
     };
 
-};
-
 // PRPACK_IGRAPH_SUPPORT 
 #endif 
+    
+};
 
 // PRPACK_IGRAPH_GRAPH
 #endif
