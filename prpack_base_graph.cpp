@@ -185,6 +185,7 @@ bool prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     }
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
+        double ignore;
         assert(fscanf(f, "%d %d %lf", 
             &hs[i], &ts[i], &((weighted) ? vs[i] : ignore)) == 3);
         ++tails[ts[i]];
