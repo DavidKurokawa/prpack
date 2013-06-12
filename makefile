@@ -12,6 +12,7 @@ OBJS = prpack_utils.o \
     prpack_solver.o \
     prpack_solver_ge.o \
     prpack_solver_sccgs.o \
+    prpack_solver_inout.o \
     prpack_result.o \
     prpack_driver.o \
     prpack_driver_benchmark.o
@@ -45,6 +46,24 @@ test: $(PROG)
 		  -a 0.5 -v test/csstan-v.vec -u test/csstan-u.vec 2>/dev/null \
 	  | python test/checkprvec.py data/wb-cs.stanford.smat - \
 		  -a 0.5 -v test/csstan-v.vec -u test/csstan-u.vec
+test_inout: $(PROG)
+	./prpack_driver data/jazz.smat --output=- -m inout 2>/dev/null| \
+	  python test/checkprvec.py data/jazz.smat - 
+	./prpack_driver data/wb-cs.stanford.smat --output=- -m inout 2>/dev/null| \
+	  python test/checkprvec.py data/wb-cs.stanford.smat - 
+	./prpack_driver data/wb-cs.stanford.smat --output=- -m inout \
+		  -a 0.5 -v test/csstan-v.vec  2>/dev/null \
+	  | python test/checkprvec.py data/wb-cs.stanford.smat - \
+		  -a 0.5 -v test/csstan-v.vec 	  
+	./prpack_driver data/wb-cs.stanford.smat --output=- -m inout \
+		  -a 0.5 -u test/csstan-u.vec 2>/dev/null \
+	  | python test/checkprvec.py data/wb-cs.stanford.smat - \
+		  -a 0.5 -u test/csstan-u.vec
+	./prpack_driver data/wb-cs.stanford.smat --output=- -m inout \
+		  -a 0.5 -v test/csstan-v.vec -u test/csstan-u.vec 2>/dev/null \
+	  | python test/checkprvec.py data/wb-cs.stanford.smat - \
+		  -a 0.5 -v test/csstan-v.vec -u test/csstan-u.vec
+	
 perf: $(PROG)
 	./prpack_driver ?
 

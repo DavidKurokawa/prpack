@@ -137,6 +137,25 @@ prpack_result* prpack_solver::solve(
                 geg->d,
                 u,
                 v));
+    } else if (m == "inout" || m == "inout_uv") {
+        if (gsg == NULL) {
+            TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));
+        }
+        TIME(compute_time, ret = solve_via_inout(
+                alpha,
+                tol,
+                gsg->num_vs,
+                gsg->num_es,
+                gsg->heads,
+                gsg->tails,
+                gsg->ii,
+                gsg->num_outlinks,
+                gsg->vals,
+                0,
+                u,
+                v,
+                alpha*0.9,
+                1.e-3));
     } else if (m == "gs") {
         if (gsg == NULL) {
             TIME(preprocess_time, gsg = new prpack_preprocessed_gs_graph(bg));

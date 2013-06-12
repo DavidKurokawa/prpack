@@ -42,6 +42,21 @@ namespace prpack {
                     const double* d,
                     const double* u,
                     const double* v);
+            static prpack_result* solve_via_inout(
+                    const double alpha,
+                    const double tol,
+                    const prpack_vtype num_vs,
+                    const prpack_vtype num_es,
+                    prpack_vtype* heads,
+                    prpack_vtype* tails,
+                    double* ii,
+                    double* num_outlinks,
+                    double* vals,
+                    int valtype,
+                    const double* u,
+                    const double* v,
+                    double beta, 
+                    double itol);
             static prpack_result* solve_via_gs(
                     const double alpha,
                     const double tol,
