@@ -1,7 +1,8 @@
 IGRAPH_SUPPORT ?= 0
+OPENMP_SUPPORT ?= 1
 
 CXX = g++
-CXXFLAGS = -Wall -g -fopenmp 
+CXXFLAGS = -Wall -g
 LDFLAGS =
 OBJS = prpack_utils.o \
     prpack_base_graph.o \
@@ -17,6 +18,12 @@ OBJS = prpack_utils.o \
     prpack_driver.o \
     prpack_driver_benchmark.o
 PROG = prpack_driver
+
+ifeq ($(OPENMP_SUPPORT),1)
+	CXXFLAGS += -fopenmp
+else
+	CXXFLAGS += -Wno-unknown-pragmas
+endif
 
 ifeq ($(IGRAPH_SUPPORT),1)
 	OBJS += prpack_igraph_graph.o
