@@ -12,13 +12,19 @@
  
 #include <math.h>
 #include <assert.h>
-#include <omp.h>
  
 #include <vector>
 #include <iostream>
 
 #include "prpack_base_graph.h"
 #include "prpack_solver.h"
+
+#ifdef _OPENMP
+#  include <omp.h>
+#else
+int omp_get_max_threads() { return 1; }
+void omp_set_num_threads(int) {}
+#endif
 
 using namespace std;
 
