@@ -79,12 +79,15 @@ class Graph:
                     delta += x[i]
             delta *= alpha
             
+            #print >>sys.stderr, "delta = %e, %e"%(delta, delta/alpha)
+            
             for i in xrange(self.nverts):
                 y[i] += delta*u[i] + (1-alpha)*v[i]
                 
             sumy = math.fsum(y)
             
             x = [ yi/sumy for yi in y ]
+                        
         return x
 
 def setup_command_line():
@@ -113,7 +116,7 @@ def load_vec(filename):
     
 def compare_vecs(v1,v2,tol):
     """ Check that v1 and v2 satisfy the tolerance properties we need. """
-    assert(len(v1) == len(v2))
+    assert len(v1) == len(v2), "len(v1) = %i and len(v2) = %i"%(len(v1),len(v2))
     assert(tol > 0)
     
     failed = False
@@ -164,7 +167,8 @@ def main():
         opts.v = load_vec(opts.v)
 
     if opts.u is None:
-        opts.u = opts.v
+        invn = 1./graph.nverts
+        opts.u = [invn for _ in xrange(graph.nverts)]
     else:
         opts.u = load_vec(opts.u)
     

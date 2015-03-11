@@ -24,6 +24,7 @@ class input {
         string graph;
         string format;
         bool weighted;
+        bool raw_weights;
         double alpha;
         double tol;
         string u;
@@ -37,6 +38,7 @@ class input {
             graph = "";
             format = "";
             weighted = false;
+            raw_weights = false;
             alpha = 0.85;
             tol = 1e-10;
             u = "";
@@ -47,15 +49,21 @@ class input {
             map<string, bool*> bool_flags;
             bool_flags["-w"] = bool_flags["--weighted"] = &weighted;
             bool_flags["-h"] = bool_flags["--help"] = &help;
+            bool_flags["-r"] = bool_flags["--raw_weights"] = &raw_weights;
+            
             map<string, double*> double_flags;
             double_flags["-a"] = double_flags["--alpha"] = &alpha;
-            double_flags["-t"] = double_flags["--tol"] = double_flags["--tolerance"] = &tol;
+            double_flags["-t"] = double_flags["--tol"] 
+                = double_flags["--tolerance"] = &tol;
+                
             map<string, string*> string_flags;
             string_flags["-f"] = string_flags["--format"] = &format;
             string_flags["-u"] = string_flags["--u"] = &u;
             string_flags["-v"] = string_flags["--v"] = &v;
             string_flags["-m"] = string_flags["--method"] = &method;
-            string_flags["-o"] = string_flags["--out"] = string_flags["--output"] = &output;
+            string_flags["-o"] = string_flags["--out"] 
+                = string_flags["--output"] = &output;
+                
             // parse args
             prpack_utils::validate(argc >= 2, "Error: graph must be supplied.");
             graph = string(argv[1]);
@@ -70,21 +78,26 @@ class input {
                 else {
                     // parse value of parameter s
                     string t;
-                    if (s.length() >= 3 && s[0] == '-' && s[1] == '-' && s.find('=') != string::npos) {
+                    if (s.length() >= 3 && s[0] == '-' && s[1] == '-' && 
+                        s.find('=') != string::npos) {
                         const int idx = s.find('=');
                         t = s.substr(idx + 1);
                         s = s.substr(0, idx);
-                    } else if (s.length() == 2 && s[0] == '-' && i + 1 < argc)
+                    } else if (s.length() == 2 && s[0] == '-' && 
+                               i + 1 < argc)
                         t = string(argv[++i]);
                     else
-                        prpack_utils::validate(false, "Error: argument '" + s + "' is not valid or does not specify a value.");
+                        prpack_utils::validate(false, 
+                            "Error: argument '" + s + 
+                            "' is not valid or does not specify a value.");
                     // set parameter s to t
                     if (double_flags.find(s) != double_flags.end())
                         *double_flags[s] = atof(t.c_str());
                     else if (string_flags.find(s) != string_flags.end())
                         *string_flags[s] = t;
                     else
-                        prpack_utils::validate(false, "Error: argument '" + s + "' is not valid.");
+                        prpack_utils::validate(false, "Error: argument '" + s + 
+                                                "' is not valid.");
                 }
             }
         }
@@ -95,15 +108,26 @@ void print_help() {
     string msg = "";
     msg += "Usage: prpack_driver GRAPH [options]\n";
     msg += "Options:\n";
-    msg += "  -a ALPHA, --alpha=ALPHA             Solve with ALPHA value (default = 0.85).\n";
-    msg += "  -f FORMAT, --format=FORMAT          Read GRAPH as a FORMAT file (default = use extension of GRAPH).\n";
+    msg += "  -a ALPHA, --alpha=ALPHA             Solve with ALPHA value \n";
+    msg += "                                      (default = 0.85).\n";
+    msg += "  -f FORMAT, --format=FORMAT          Read GRAPH as a FORMAT file \n";
+    msg += "                                      (default = use extension of GRAPH).\n";
     msg += "  -h, --help                          Print out this help menu.\n";
-    msg += "  -m METHOD, --method=METHOD          Solve via METHOD (default = chosen based on properties of GRAPH).\n";
-    msg += "  -o OUT, --out=OUT, --output=OUT     File to output solution (default = standard out).\n";
-    msg += "  -t TOL, --tol=TOL, --tolerance=TOL  Ensure 1-norm error < TOL (default = 1e-10).\n";
-    msg += "  -u U, --u=U                         Solve with U value (default = uniform vector).\n";
-    msg += "  -v V, --v=V                         Solve with V value (default = uniform vector).\n";
-    msg += "  -w, --weighted                      Solve a weighted problem (default = false).\n";
+    msg += "  -m METHOD, --method=METHOD          Solve via METHOD (default based on \n";
+    msg += "                                      properties of GRAPH).\n";
+    msg += "  -o OUT, --out=OUT, --output=OUT     File to output solution \n";
+    msg += "                                      (default = standard out).\n";
+    msg += "  -t TOL, --tol=TOL, --tolerance=TOL  Ensure 1-norm error < TOL \n";
+    msg += "                                      (default = 1e-10).\n";
+    msg += "  -u U, --u=U                         Solve with U value \n";
+    msg += "                                      (default = uniform vector).\n";
+    msg += "  -v V, --v=V                         Solve with V value \n";
+    msg += "                                      (default = uniform vector).\n";
+    msg += "  -w, --weighted                      Solve a weighted problem \n";
+    msg += "                                      (default = false).\n";
+    msg += "  -r, --raw_weights                   Use the sparse matrix values as weights\n";
+    msg += "                                      instead of normalizing to sum to one.\n";
+    msg += "                                      (default = false).\n";
     printf("%s", msg.c_str());
 }
 
@@ -134,6 +158,10 @@ void write_vector(double *x, int n, ostream& out) {
 
 int main(const int argc, const char** argv) {
     // parse command args
+    if (argc == 1) {
+        print_help(); 
+        return 0;
+    }
     input in(argc, argv);
     if (in.help) {
         print_help();
@@ -147,9 +175,30 @@ int main(const int argc, const char** argv) {
         benchmark(atoi(&argv[1][1]));
         return 0;
     }
-
+    // check the filename first
+    {
+        FILE *testfid = NULL;
+        if ((testfid = fopen(in.graph.c_str(),"r")) != NULL) {
+            fclose(testfid);
+        } else {
+            prpack_utils::validate(false, 
+                            "Error: '" + in.graph + 
+                            "' is not a valid filename.");
+            return 1;
+        }
+    }
+        
+    // load the graph
+    double read_time = prpack_utils::get_time();
+    prpack_base_graph g(in.graph.c_str(), in.format.c_str(), in.weighted);
+    read_time = prpack_utils::get_time() - read_time;
+    
+    if (!in.raw_weights) {
+        g.normalize_weights(); 
+    }   
+    
     // solve
-    prpack_solver solver(in.graph.c_str(), in.format.c_str(), in.weighted);
+    prpack_solver solver(&g, false);
     const double* u = read_vector(in.u);
     const double* v = (in.u == in.v) ? u : read_vector(in.v);
     const prpack_result* res = solver.solve(in.alpha, in.tol, u, v, in.method.c_str());
@@ -163,8 +212,13 @@ int main(const int argc, const char** argv) {
     *out << "number of vertices = " << res->num_vs << endl;
     *out << "number of edges = " << res->num_es << endl;
     *out << "---------------------------" << endl;
+    *out << "alpha = " << in.alpha << endl;
+    *out << "tol = " << in.tol << endl;
+    *out << "u = " << in.u << endl;
+    *out << "v = " << in.v << endl;
+    *out << "---------------------------" << endl;
     *out << "method = " << res->method << endl;
-    *out << "read time = " << res->read_time << "s" << endl;
+    *out << "read time = " << read_time << "s" << endl;
     *out << "preprocess time = " << res->preprocess_time << "s" << endl;
     *out << "compute time = " << res->compute_time << "s" << endl;
     *out << "number of edges touched = " << res->num_es_touched << endl;
@@ -187,5 +241,7 @@ int main(const int argc, const char** argv) {
             write_vector(res->x, res->num_vs, outfile);
         }
     }
+    
+    return (0);
 }
 
