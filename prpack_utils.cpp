@@ -1,5 +1,5 @@
 #include "prpack_utils.h"
-#include <cassert>
+#include <exception>
 #include <iostream>
 #include <string>
 using namespace prpack;
@@ -31,7 +31,7 @@ double prpack_utils::get_time() {
 void prpack_utils::validate(const bool condition, const string& msg) {
     if (!condition) {
         cerr << msg << endl;
-        assert(condition);
+		std::terminate();
     }
 }
 
