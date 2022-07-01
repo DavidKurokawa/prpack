@@ -91,7 +91,7 @@ mxArray* ll_to_matlab_array(long long x) {
     return ret;
 }
 
-mxArray* string_to_matlab_array(char* s) {
+mxArray* string_to_matlab_array(const char* s) {
     return mxCreateString(s);
 }
 
