@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 #include <vector>
 #include <limits>
 using namespace prpack;
@@ -103,9 +104,9 @@ prpack_base_graph::prpack_base_graph(const prpack_int64_csc* g) {
 }
 
 prpack_base_graph::prpack_base_graph(const prpack_csr* g) {
+    (void)g; // to silence an unused argument warning
     initialize();
-    assert(false);
-    // TODO
+    throw std::runtime_error("not implemented yet");
 }
 
 prpack_base_graph::prpack_base_graph(const prpack_edge_list* g) {
@@ -186,8 +187,10 @@ bool prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
         double ignore;
-        assert(fscanf(f, "%d %d %lf", 
-            &hs[i], &ts[i], &((weighted) ? vs[i] : ignore)) == 3);
+        retval = fscanf(f, "%d %d %lf", &hs[i], &ts[i], &((weighted) ? vs[i] : ignore));
+        if (retval != 3) {
+            prpack_utils::validate(false, "Error: cannot parse smat file.");
+        }
         ++tails[ts[i]];
         if (hs[i] == ts[i])
             ++num_self_es;
@@ -237,7 +240,10 @@ void prpack_base_graph::read_edges(FILE* f) {
 }
 
 void prpack_base_graph::read_ascii(FILE* f) {
-    assert(fscanf(f, "%d", &num_vs) == 1);
+    int retval = fscanf(f, "%d", &num_vs);
+    if (retval != 1) {
+        throw std::runtime_error("error while parsing ascii file");
+    }
     while (getc(f) != '\n');
     vector<int>* al = new vector<int>[num_vs];
     num_es = num_self_es = 0;
@@ -335,4 +341,3 @@ void prpack_base_graph::normalize_weights() {
         }
     }
 }
-

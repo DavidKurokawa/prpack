@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 #include "prpack_utils.h"
-#include <cassert>
+#include <exception>
 #include <iostream>
 #include <string>
 using namespace prpack;
