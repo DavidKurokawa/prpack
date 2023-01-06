@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
 #include <vector>
 #include <limits>
 using namespace prpack;
@@ -13,6 +14,11 @@ void prpack_base_graph::initialize() {
     heads = NULL;
     tails = NULL;
     vals = NULL;
+}
+
+prpack_base_graph::prpack_base_graph() {
+	initialize();
+	num_vs = num_es = 0;
 }
 
 prpack_base_graph::prpack_base_graph(const prpack_csc* g) {
@@ -58,7 +64,7 @@ prpack_base_graph::prpack_base_graph(const prpack_csc* g) {
 prpack_base_graph::prpack_base_graph(const prpack_int64_csc* g) {
     initialize();
     // TODO remove the assert and add better behavior
-    assert(num_vs <= std::numeric_limits<int>::max());
+    assert(g->num_vs <= std::numeric_limits<int>::max());
     num_vs = (int)g->num_vs;
     num_es = (int)g->num_es;
     // fill in heads and tails
@@ -98,9 +104,9 @@ prpack_base_graph::prpack_base_graph(const prpack_int64_csc* g) {
 }
 
 prpack_base_graph::prpack_base_graph(const prpack_csr* g) {
+    (void)g; // to silence an unused argument warning
     initialize();
-    assert(false);
-    // TODO
+    throw std::runtime_error("not implemented yet");
 }
 
 prpack_base_graph::prpack_base_graph(const prpack_edge_list* g) {
@@ -138,16 +144,18 @@ prpack_base_graph::prpack_base_graph(const char* filename, const char* format, c
     const string s(filename);
     const string t(format);
     const string ext = (t == "") ? s.substr(s.rfind('.') + 1) : t;
-    if (ext == "smat")
+    if (ext == "smat") {
         read_smat(f, weighted);
-    else {
-        prpack_utils::validate(!weighted, "Error: graph format is not compatible with weighted option.");
-        if (ext == "edges" || ext == "eg2")
+    } else {
+        prpack_utils::validate(!weighted, 
+            "Error: graph format is not compatible with weighted option.");
+        if (ext == "edges" || ext == "eg2") {
             read_edges(f);
-        else if (ext == "graph-txt")
+        } else if (ext == "graph-txt") {
             read_ascii(f);
-        else
+        } else {
             prpack_utils::validate(false, "Error: invalid graph format.");
+        }
     }
     fclose(f);
 }
@@ -158,10 +166,13 @@ prpack_base_graph::~prpack_base_graph() {
     delete[] vals;
 }
 
-void prpack_base_graph::read_smat(FILE* f, const bool weighted) {
+bool prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     // read in header
-    double blah;
-    assert(fscanf(f, "%d %lf %d", &num_vs, &blah, &num_es) == 3);
+    int nvs2=0;
+    assert(fscanf(f, "%d %d %d", &num_vs, &nvs2, &num_es) == 3);
+    if (nvs2 != num_vs) {
+        return false;
+    }
     // fill in heads and tails
     num_self_es = 0;
     int* hs = new int[num_es];
@@ -175,7 +186,11 @@ void prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     }
     memset(tails, 0, num_vs*sizeof(tails[0]));
     for (int i = 0; i < num_es; ++i) {
-        assert(fscanf(f, "%d %d %lf", &hs[i], &ts[i], &((weighted) ? vs[i] : blah)) == 3);
+        double ignore;
+        retval = fscanf(f, "%d %d %lf", &hs[i], &ts[i], &((weighted) ? vs[i] : ignore));
+        if (retval != 3) {
+            prpack_utils::validate(false, "Error: cannot parse smat file.");
+        }
         ++tails[ts[i]];
         if (hs[i] == ts[i])
             ++num_self_es;
@@ -198,6 +213,7 @@ void prpack_base_graph::read_smat(FILE* f, const bool weighted) {
     delete[] ts;
     delete[] vs;
     delete[] osets;
+    return true;
 }
 
 void prpack_base_graph::read_edges(FILE* f) {
@@ -224,7 +240,10 @@ void prpack_base_graph::read_edges(FILE* f) {
 }
 
 void prpack_base_graph::read_ascii(FILE* f) {
-    assert(fscanf(f, "%d", &num_vs) == 1);
+    int retval = fscanf(f, "%d", &num_vs);
+    if (retval != 1) {
+        throw std::runtime_error("error while parsing ascii file");
+    }
     while (getc(f) != '\n');
     vector<int>* al = new vector<int>[num_vs];
     num_es = num_self_es = 0;
@@ -296,3 +315,29 @@ prpack_base_graph::prpack_base_graph(int nverts, int nedges,
     delete[] osets;
 }
 
+/** Normalize the edge weights to sum to one.  
+ */
+void prpack_base_graph::normalize_weights() {
+    if (!vals) { 
+        // skip normalizing weights if not using values
+        return;
+    }
+    std::vector<double> rowsums(num_vs,0.);
+    // the graph is in a compressed in-edge list.
+    for (int i=0; i<num_vs; ++i) {
+        int end_ei = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+        for (int ei=tails[i]; ei < end_ei; ++ei) {
+            int head = heads[ei];
+            rowsums[head] += vals[ei];
+        }
+    }
+    for (int i=0; i<num_vs; ++i) {
+        rowsums[i] = 1./rowsums[i];
+    }
+    for (int i=0; i<num_vs; ++i) {
+        int end_ei = (i + 1 != num_vs) ? tails[i + 1] : num_es;
+        for (int ei=tails[i]; ei < end_ei; ++ei) {
+            vals[ei] *= rowsums[heads[ei]];
+        }
+    }
+}
